@@ -1,22 +1,55 @@
-import React from "react";
-import { Divider, Form, TextArea } from "semantic-ui-react";
+import React, { ChangeEvent, SyntheticEvent } from "react";
+import { useState } from "react";
+import { Checkbox, Divider, Form, TextArea } from "semantic-ui-react";
+import { EntryFormModel } from "../datamodels/EntryFormModel";
+
+// interface Props {
+//   formData: EntryFormModel | undefined;
+// }
 
 export default function EntryForm() {
+  const initialState = {
+    username: "",
+    password: "",
+    listofsubnet: "",
+    timeout: "",
+    resolveIP: true,
+  };
+
+  const [formData, setFormData] = useState(initialState);
+
+  function handleSubmit() {
+    console.log(formData);
+  }
+
+  function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const { name, value } = event.target;
+    setFormData({ ...formData, [name]: value });
+  }
+
+  function handleCheckBoxState(event: SyntheticEvent, data: any) {
+    setFormData({ ...formData, ["resolveIP"]: !formData.resolveIP });
+  }
+
   return (
-    <Form onSubmit={() => console.log("Hello")}>
+    <Form onSubmit={handleSubmit} autoComplete="off">
       <Form.Group widths="equal">
         <Form.Input
           fluid
-          id="username"
+          name="username"
           label="Username"
           placeholder="Enter Username"
+          value={formData.username}
+          onChange={handleInputChange}
           required
         />
         <Form.Input
           fluid
-          id="password"
+          name="password"
           label="Password"
           placeholder="Enter password"
+          value={formData.password}
+          onChange={handleInputChange}
           type="password"
           required
         />
@@ -24,26 +57,31 @@ export default function EntryForm() {
       <Divider />
 
       <Form.Field
-        id="listofsubnet"
+        name="listofsubnet"
         control={TextArea}
         label="Enter Subnets (max 1024 IP per subnet /22)"
         placeholder="Subnets can be in these formats:\n159.156.1.0/29\n159.156.2.0 255.255.255.0\n192.168.1.0 (full class C will be pinged)"
+        value={formData.listofsubnet}
+        onChange={handleInputChange}
         required
       />
 
       <Form.Input
-        id="timeout"
+        name="timeout"
         label="Ping timeout in ms"
-        value="1000"
+        value={formData.timeout}
+        onChange={handleInputChange}
         style={{ width: "8em" }}
       />
 
       <Form.Field
-        id="resolveIP"
+        name="resolveIP"
         label="Resolve IP to DNS Name"
-        control="input"
-        type="checkbox"
-        checked
+        control={Checkbox}
+        checked={formData.resolveIP}
+        value={formData.resolveIP}
+        //onChange={handleInputChange}
+        onChange={handleCheckBoxState}
       />
       <Divider />
 
@@ -52,7 +90,7 @@ export default function EntryForm() {
           Submit
         </Form.Button>
 
-        <Form.Button type="cancel" negative>
+        <Form.Button type="button" negative>
           Cancel
         </Form.Button>
       </Form.Group>
