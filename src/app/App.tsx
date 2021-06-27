@@ -1,3 +1,4 @@
+import { observer } from "mobx-react-lite";
 import React from "react";
 import { Container } from "semantic-ui-react";
 import NavBar from "./components/common/NavBar";
@@ -14,4 +15,4 @@ function App() {
   );
 }
 
-export default App;
+export default observer(App);

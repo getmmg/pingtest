@@ -1,99 +1,142 @@
-import React, { ChangeEvent, SyntheticEvent } from "react";
-import { useState } from "react";
-import { Checkbox, Divider, Form, TextArea } from "semantic-ui-react";
+import { Formik, Form, Field } from "formik";
+import { observer } from "mobx-react-lite";
+
+import { Button, Divider } from "semantic-ui-react";
+
 import { EntryFormModel } from "../datamodels/EntryFormModel";
+import * as Yup from "yup";
+
+import { useStore } from "../stores/store";
+import ResultTable from "./ResultTable";
+
+import MyTextInput from "./common/forminputs/MyTextInput";
+import MyTextArea from "./common/forminputs/MyTextArea";
 
 // interface Props {
 //   formData: EntryFormModel | undefined;
 // }
 
-export default function EntryForm() {
+export default observer(function EntryForm() {
+  const { apiStore } = useStore();
   const initialState = {
     username: "",
     password: "",
     listofsubnet: "",
-    timeout: "",
+    timeout: "1000",
     resolveIP: true,
   };
 
-  const [formData, setFormData] = useState(initialState);
+  const validationSchema = Yup.object({
+    username: Yup.string().required("Username is required"),
+    password: Yup.string().required("Password is required"),
+    listofsubnet: Yup.string().required("List of Subnets is required"),
+    timeout: Yup.number()
+      .required("Timeout is required")
+      .min(500, "Timeout should be between 500 & 2000")
+      .max(2000, "Timeout should be between 500 & 2000"),
+  });
 
-  function handleSubmit() {
-    console.log(formData);
+  // function resetForm() {
+  //   //setFormData(initialState);
+  //   apiStore.resetForm();
+  // }
+
+  function handleFormSubmit(formData: EntryFormModel) {
+    apiStore.getResults(formData).then(() => console.log("result done"));
   }
 
-  function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
-    const { name, value } = event.target;
-    setFormData({ ...formData, [name]: value });
-  }
+  // function handleInputChange(event: ChangeEvent<HTMLInputElement>) {
+  //   const { name, value } = event.target;
+  //   setFormData({ ...formData, [name]: value });
+  // }
 
-  function handleCheckBoxState(event: SyntheticEvent, data: any) {
-    setFormData({ ...formData, ["resolveIP"]: !formData.resolveIP });
-  }
+  // function handleCheckBoxState(event: SyntheticEvent, data: any) {
+  //   setFormData({ ...formData, ["resolveIP"]: !formData.resolveIP });
+  // }
 
   return (
-    <Form onSubmit={handleSubmit} autoComplete="off">
-      <Form.Group widths="equal">
-        <Form.Input
-          fluid
-          name="username"
-          label="Username"
-          placeholder="Enter Username"
-          value={formData.username}
-          onChange={handleInputChange}
-          required
-        />
-        <Form.Input
-          fluid
-          name="password"
-          label="Password"
-          placeholder="Enter password"
-          value={formData.password}
-          onChange={handleInputChange}
-          type="password"
-          required
-        />
-      </Form.Group>
-      <Divider />
+    <>
+      <Formik
+        validationSchema={validationSchema}
+        enableReinitialize
+        initialValues={initialState}
+        onSubmit={(values) => handleFormSubmit(values)}
+      >
+        {({ handleSubmit, isValid, resetForm, dirty, isSubmitting }) => (
+          <Form className="ui form" onSubmit={handleSubmit} autoComplete="off">
+            {/* <Form.Group widths="equal"> */}
 
-      <Form.Field
-        name="listofsubnet"
-        control={TextArea}
-        label="Enter Subnets (max 1024 IP per subnet /22)"
-        placeholder="Subnets can be in these formats:\n159.156.1.0/29\n159.156.2.0 255.255.255.0\n192.168.1.0 (full class C will be pinged)"
-        value={formData.listofsubnet}
-        onChange={handleInputChange}
-        required
-      />
+            <MyTextInput name="username" placeholder="Enter Username" />
 
-      <Form.Input
-        name="timeout"
-        label="Ping timeout in ms"
-        value={formData.timeout}
-        onChange={handleInputChange}
-        style={{ width: "8em" }}
-      />
+            <MyTextInput
+              name="password"
+              placeholder="Enter Password"
+              type="password"
+            />
 
-      <Form.Field
-        name="resolveIP"
-        label="Resolve IP to DNS Name"
-        control={Checkbox}
-        checked={formData.resolveIP}
-        value={formData.resolveIP}
-        //onChange={handleInputChange}
-        onChange={handleCheckBoxState}
-      />
-      <Divider />
+            {/* </Form.Group> */}
+            <Divider />
 
-      <Form.Group>
-        <Form.Button type="submit" positive>
-          Submit
-        </Form.Button>
+            <MyTextArea
+              rows={4}
+              name="listofsubnet"
+              placeholder="Subnets can be in these formats:
+              159.156.1.0/29
+              159.156.2.0 255.255.255.0
+              192.168.1.0 (full class C will be pinged)"
+            />
 
-        <Form.Button type="button" negative>
-          Cancel
-        </Form.Button>
-      </Form.Group>
-    </Form>
+            <MyTextInput name="timeout" placeholder="" />
+
+            <div className="ui">
+              <label>
+                <Field type="checkbox" id="resolveIP" name="resolveIP" />
+                Resolve IP to DNS Name
+              </label>
+            </div>
+
+            {/* <div>
+              <label className="ui">
+                <Field
+                  id="resolveIP"
+                  name="resolveIP"
+                  label="Resolve IP to DNS Name"
+                  type="checkbox"
+                />
+                Resolve IP to DNS Name
+              </label>
+            </div> */}
+
+            <Divider />
+
+            {/* <Form.Group> */}
+            <Button
+              type="submit"
+              disabled={!dirty || !isValid}
+              positive
+              loading={apiStore.loading}
+              //loading={isSubmitting}
+              content="Submit"
+              floated="right"
+            />
+
+            <Button
+              content="Reset"
+              floated="right"
+              type="button"
+              negative
+              onClick={() => {
+                apiStore.resetForm();
+                resetForm();
+              }}
+            />
+
+            {/* </Form.Group> */}
+          </Form>
+        )}
+      </Formik>
+
+      <ResultTable />
+    </>
   );
-}
+});
