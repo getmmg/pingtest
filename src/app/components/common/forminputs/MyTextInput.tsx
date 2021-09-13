@@ -7,6 +7,7 @@ interface Props {
   label?: string;
   type?: string;
 }
+
 export default function MyTextInput(props: Props) {
   const [field, meta] = useField(props.name);
   return (

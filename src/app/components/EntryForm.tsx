@@ -11,6 +11,7 @@ import ResultTable from "./ResultTable";
 
 import MyTextInput from "./common/forminputs/MyTextInput";
 import MyTextArea from "./common/forminputs/MyTextArea";
+import MyAutoSelectText from "./common/forminputs/MyAutoSelectText";
 
 // interface Props {
 //   formData: EntryFormModel | undefined;
@@ -19,6 +20,7 @@ import MyTextArea from "./common/forminputs/MyTextArea";
 export default observer(function EntryForm() {
   const { apiStore } = useStore();
   const initialState = {
+    selection : "",
     username: "",
     password: "",
     listofsubnet: "",
@@ -27,6 +29,7 @@ export default observer(function EntryForm() {
   };
 
   const validationSchema = Yup.object({
+    selection: Yup.string().required("selection is required"),
     username: Yup.string().required("Username is required"),
     password: Yup.string().required("Password is required"),
     listofsubnet: Yup.string().required("List of Subnets is required"),
@@ -65,6 +68,9 @@ export default observer(function EntryForm() {
         {({ handleSubmit, isValid, resetForm, dirty, isSubmitting }) => (
           <Form className="ui form" onSubmit={handleSubmit} autoComplete="off">
             {/* <Form.Group widths="equal"> */}
+
+
+            <MyAutoSelectText name="selection" label="Selection"/>
 
             <MyTextInput name="username" placeholder="Enter Username" />
 
@@ -112,7 +118,7 @@ export default observer(function EntryForm() {
             {/* <Form.Group> */}
             <Button
               type="submit"
-              disabled={!dirty || !isValid}
+              //disabled={!dirty || !isValid}
               positive
               loading={apiStore.loading}
               //loading={isSubmitting}
