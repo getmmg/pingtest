@@ -30,9 +30,7 @@ export default function MyAutoSelectText(props: Props) {
       setValue(selection.value)
     }
     itemToString={item => (item ? item.value : '')}
-  >
-
-    
+  >    
     {({
       getInputProps,
       getItemProps,

@@ -11,7 +11,7 @@ import ResultTable from "./ResultTable";
 
 import MyTextInput from "./common/forminputs/MyTextInput";
 import MyTextArea from "./common/forminputs/MyTextArea";
-import MyAutoSelectText from "./common/forminputs/MyAutoSelectText";
+import { MyAutocomplete } from "./common/forminputs/MyAutoComplete";
 
 // interface Props {
 //   formData: EntryFormModel | undefined;
@@ -70,8 +70,8 @@ export default observer(function EntryForm() {
             {/* <Form.Group widths="equal"> */}
 
 
-            <MyAutoSelectText name="selection" label="Selection"/>
-
+   
+            <MyAutocomplete/>
             <MyTextInput name="username" placeholder="Enter Username" />
 
             <MyTextInput
