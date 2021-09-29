@@ -4,9 +4,7 @@ import { api } from "./api";
 
 export const MyAutocomplete: React.FC = () => {
   const [apiResult, setApiResult] = useState("");
-
   const promiseStore = useMemo<{latestPromise: null | Promise<any>}>(() => ({latestPromise: null }), []);
-
   const handleChange = async (e:any) => {
     if(promiseStore.latestPromise) {
       //Cancel Api Request 
