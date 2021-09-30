@@ -11,8 +11,9 @@ import ResultTable from "./ResultTable";
 
 import MyTextInput from "./common/forminputs/MyTextInput";
 import MyTextArea from "./common/forminputs/MyTextArea";
-import { MyAutocomplete } from "./common/forminputs/MyAutoComplete";
-import { Auto } from "./common/forminputs/MyAuto";
+
+import GitHubSearch from "./common/forminputs/MyAuto";
+
 
 // interface Props {
 //   formData: EntryFormModel | undefined;
@@ -70,9 +71,9 @@ export default observer(function EntryForm() {
           <Form className="ui form" onSubmit={handleSubmit} autoComplete="off">
             {/* <Form.Group widths="equal"> */}
 
-          <Auto/>
+          <GitHubSearch/>
    
-            <MyAutocomplete/>
+            
             <MyTextInput name="username" placeholder="Enter Username" />
 
             <MyTextInput
