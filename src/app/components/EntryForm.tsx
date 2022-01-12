@@ -47,6 +47,7 @@ export default observer(function EntryForm() {
   // }
 
   function handleFormSubmit(formData: EntryFormModel) {
+    console.log(formData)
     apiStore.getResults(formData).then(() => console.log("result done"));
   }
 

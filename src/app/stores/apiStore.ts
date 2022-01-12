@@ -15,6 +15,7 @@ export default class ApiStore {
   loading = false;
   tableHeader: String[] = ["Id", "Title", "Price", "Description", "Category"];
 
+
   title = "Hello from Mobx";
 
   constructor() {
