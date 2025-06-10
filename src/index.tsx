@@ -1,6 +1,7 @@
 // src/components/PlanningPage.tsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
+import { ColDef, ColGroupDef } from 'ag-grid-community'; // ADDED THIS IMPORT
 import {
   Dropdown,
   Button,
@@ -33,8 +34,8 @@ import {
   Project,
   ProjectAllocation,
   ProjectAllocationCreate,
-  NonProjectAllocation, // Changed from NonProjectTimeAllocation
-  NonProjectAllocationCreate // Changed from NonProjectTimeAllocationCreate
+  NonProjectAllocation,
+  NonProjectAllocationCreate
 } from '../models/apiModels'; // Ensure this path is correct and models are updated as discussed
 
 interface AllocationGridRow {
@@ -62,7 +63,7 @@ const PlanningPage: React.FC = () => {
   const [engineers, setEngineers] = useState<Engineer[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectAllocations, setProjectAllocations] = useState<ProjectAllocation[]>([]);
-  const [nonProjectAllocations, setNonProjectAllocations] = useState<NonProjectAllocation[]>([]); // Changed type
+  const [nonProjectAllocations, setNonProjectAllocations] = useState<NonProjectAllocation[]>([]);
   const [monthlyCapacities, setMonthlyCapacities] = useState<MonthlyCapacity>({});
 
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -75,18 +76,18 @@ const PlanningPage: React.FC = () => {
   const [isEditingProjectAllocation, setIsEditingProjectAllocation] = useState(false);
   const [isEditingNonProjectAllocation, setIsEditingNonProjectAllocation] = useState(false);
   const [currentProjectAllocation, setCurrentProjectAllocation] = useState<ProjectAllocation | null>(null);
-  const [currentNonProjectAllocation, setCurrentNonProjectAllocation] = useState<NonProjectAllocation | null>(null); // Changed type
+  const [currentNonProjectAllocation, setCurrentNonProjectAllocation] = useState<NonProjectAllocation | null>(null);
 
   const [formEngineerId, setFormEngineerId] = useState<number | null>(null);
-  const [formProjectId, setFormProjectId] = useState<number | null>(null); // For project allocations
-  const [formNonProjectType, setFormNonProjectType] = useState<string>(''); // For non-project
+  const [formProjectId, setFormProjectId] = useState<number | null>(null);
+  const [formNonProjectType, setFormNonProjectType] = useState<string>('');
   const [formAllocationMonth, setFormAllocationMonth] = useState<string>('');
   const [formManDaysAllocated, setFormManDaysAllocated] = useState<number | ''>('');
 
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [allocationToDelete, setAllocationToDelete] = useState<{ id: number; type: 'project' | 'non-project' } | null>(null);
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2); // Current year +/- 2
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2);
   const monthNames = Array.from({ length: 12 }, (_, i) => new Date(0, i).toLocaleString('default', { month: 'long' }));
   const nonProjectTypes = ['Holiday', 'Training', 'Admin', 'Leave', 'Other'];
 
@@ -112,16 +113,16 @@ const PlanningPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedYear]); // Only re-create if selectedYear changes
+  }, [selectedYear]);
 
   useEffect(() => {
     fetchAllData();
-  }, [fetchAllData]); // Calls fetchAllData only when fetchAllData changes (i.e., selectedYear changes)
+  }, [fetchAllData]);
 
-  const populateFormForEdit = (allocation: ProjectAllocation | NonProjectAllocation, type: 'project' | 'non-project') => { // Changed type
+  const populateFormForEdit = (allocation: ProjectAllocation | NonProjectAllocation, type: 'project' | 'non-project') => {
     setFormEngineerId(allocation.engineer_id);
     setFormAllocationMonth(allocation.allocation_month);
-    setFormManDaysAllocated(allocation.man_days_allocated); // Changed to man_days_allocated
+    setFormManDaysAllocated(allocation.man_days_allocated);
 
     if (type === 'project') {
       const projAlloc = allocation as ProjectAllocation;
@@ -130,7 +131,7 @@ const PlanningPage: React.FC = () => {
       setIsEditingProjectAllocation(true);
       setShowProjectAllocationModal(true);
     } else {
-      const nonProjAlloc = allocation as NonProjectAllocation; // Changed type
+      const nonProjAlloc = allocation as NonProjectAllocation;
       setFormNonProjectType(nonProjAlloc.type);
       setCurrentNonProjectAllocation(nonProjAlloc);
       setIsEditingNonProjectAllocation(true);
@@ -168,7 +169,6 @@ const PlanningPage: React.FC = () => {
       }
       setShowProjectAllocationModal(false);
       resetForm();
-      // fetchAllData(); // REMOVED - Optimistic update handled locally
     } catch (err: any) {
       console.error("Error saving project allocation:", err);
       setError(err.response?.data?.detail || "Failed to save project allocation. Check if allocation exceeds capacity.");
@@ -184,16 +184,16 @@ const PlanningPage: React.FC = () => {
       return;
     }
 
-    const allocationData: NonProjectAllocationCreate = { // Changed type
+    const allocationData: NonProjectAllocationCreate = {
       engineer_id: formEngineerId,
       type: formNonProjectType,
       allocation_month: formAllocationMonth,
-      man_days_allocated: parseFloat(formManDaysAllocated.toString()), // Changed to man_days_allocated
+      man_days_allocated: parseFloat(formManDaysAllocated.toString()),
     };
 
     setLoading(true);
     try {
-      let updatedAllocation: NonProjectAllocation; // Changed type
+      let updatedAllocation: NonProjectAllocation;
       if (isEditingNonProjectAllocation && currentNonProjectAllocation) {
         updatedAllocation = await updateNonProjectAllocation(currentNonProjectAllocation.non_project_allocation_id, allocationData);
         setNonProjectAllocations(prev =>
@@ -207,7 +207,6 @@ const PlanningPage: React.FC = () => {
       }
       setShowNonProjectAllocationModal(false);
       resetForm();
-      // fetchAllData(); // REMOVED - Optimistic update handled locally
     } catch (err: any) {
       console.error("Error saving non-project allocation:", err);
       setError(err.response?.data?.detail || "Failed to save non-project allocation. Check if allocation exceeds capacity.");
@@ -229,7 +228,6 @@ const PlanningPage: React.FC = () => {
         await deleteNonProjectAllocation(allocationToDelete.id);
         setNonProjectAllocations(prev => prev.filter(alloc => alloc.non_project_allocation_id !== allocationToDelete.id));
       }
-      // fetchAllData(); // REMOVED - Optimistic update handled locally
     } catch (err: any) {
       console.error("Error deleting allocation:", err);
       setError(err.response?.data?.detail || "Failed to delete allocation.");
@@ -292,8 +290,7 @@ const PlanningPage: React.FC = () => {
     return options;
   };
 
-  // AG-Grid Configuration
-  const columnDefs = useMemo(() => {
+  const columnDefs = useMemo<Array<ColDef | ColGroupDef>>(() => { // Explicit type annotation
     const dynamicMonthColumns = monthNames.map((monthName, index) => {
       const monthNum = index + 1;
       const monthDate = new Date(selectedYear, index, 1);
@@ -309,7 +306,7 @@ const PlanningPage: React.FC = () => {
             width: 90,
             valueFormatter: (params: any) => params.value !== undefined ? params.value.toFixed(1) : 'N/A',
             cellStyle: { fontWeight: 'bold' }
-          },
+          } as ColDef, // Cast as ColDef
           ...projects.map(project => ({
             headerName: project.project_name,
             field: `${project.project_id}_${monthKey}`,
@@ -346,13 +343,9 @@ const PlanningPage: React.FC = () => {
               );
               const projectAllocationId = existingAllocation?.allocation_id;
 
-              // Calculate current overall allocation based on local rowData for accurate capacity check
-              // It's safer to get the actual current overall allocation from the rowData
-              // since state might not have updated from a previous cell edit immediately.
               const currentOverallAllocation = params.data[`month_total_overall_${monthKey}`] || 0;
               const proposedOverallAllocation = currentOverallAllocation - oldValue + newValue;
               const capacity = params.data.monthly_capacity?.[monthKey] || 0;
-
 
               if (capacity > 0 && proposedOverallAllocation > capacity) {
                   setError(`Proposed allocation (${proposedOverallAllocation.toFixed(1)} days) exceeds monthly capacity (${capacity.toFixed(1)} days) for ${params.data.engineer_name} in ${monthName}.`);
@@ -381,15 +374,15 @@ const PlanningPage: React.FC = () => {
                   updatedOrCreatedAllocation = await createProjectAllocation(allocationData);
                   setProjectAllocations(prev => [...prev, updatedOrCreatedAllocation]);
                 }
-                setError(null); // Clear any previous errors on successful update
-                return true; // Indicate that the update was successful for Ag-Grid
+                setError(null);
+                return true;
               } catch (err: any) {
                 console.error("Error updating project allocation:", err);
                 setError(err.response?.data?.detail || "Failed to update project allocation.");
-                return false; // Indicate that the update failed for Ag-Grid
+                return false;
               }
             },
-          })),
+          }) as ColDef), // Cast as ColDef
           {
             headerName: 'Non-Project',
             field: `non_project_${monthKey}`,
@@ -400,7 +393,7 @@ const PlanningPage: React.FC = () => {
                 npa.engineer_id === engineerId &&
                 npa.allocation_month === monthKey
               );
-              const totalNonProject = allocations.reduce((sum, npa) => sum + npa.man_days_allocated, 0); // Changed to man_days_allocated
+              const totalNonProject = allocations.reduce((sum, npa) => sum + npa.man_days_allocated, 0);
 
               return (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '100%' }}>
@@ -424,9 +417,9 @@ const PlanningPage: React.FC = () => {
                     npa.engineer_id === engineerId &&
                     npa.allocation_month === monthKey
                 );
-                return allocations.map(npa => `${npa.type}: ${npa.man_days_allocated}`).join(', '); // Changed to man_days_allocated
+                return allocations.map(npa => `${npa.type}: ${npa.man_days_allocated}`).join(', ');
             }
-          },
+          } as ColDef, // Cast as ColDef
           {
             headerName: 'Total Allocated',
             field: `month_total_overall_${monthKey}`,
@@ -440,7 +433,7 @@ const PlanningPage: React.FC = () => {
                 }
                 return { fontWeight: 'bold' };
             }
-          },
+          } as ColDef, // Cast as ColDef
           {
             headerName: 'Utilization (%)',
             field: `utilization_${monthKey}`,
@@ -455,20 +448,20 @@ const PlanningPage: React.FC = () => {
               }
               return null;
             }
-          }
+          } as ColDef // Cast as ColDef
         ],
-      };
+      } as ColGroupDef; // Cast as ColGroupDef
     });
 
     return [
       {
         headerName: 'Engineer Info',
         children: [
-          { headerName: 'ID', field: 'engineer_id', width: 70, pinned: 'left' },
-          { headerName: 'Engineer Name', field: 'engineer_name', width: 150, pinned: 'left' },
-          { headerName: 'Line Manager', field: 'line_manager', width: 120, pinned: 'left' },
+          { headerName: 'ID', field: 'engineer_id', width: 70, pinned: 'left' } as ColDef,
+          { headerName: 'Engineer Name', field: 'engineer_name', width: 150, pinned: 'left' } as ColDef,
+          { headerName: 'Line Manager', field: 'line_manager', width: 120, pinned: 'left' } as ColDef,
         ],
-      },
+      } as ColGroupDef,
       ...dynamicMonthColumns,
       {
         headerName: 'Totals',
@@ -479,28 +472,26 @@ const PlanningPage: React.FC = () => {
             width: 140,
             valueFormatter: (params: any) => params.value !== undefined ? params.value.toFixed(1) : '0.0',
             cellStyle: { fontWeight: 'bold' }
-          },
+          } as ColDef,
           {
             headerName: 'Total Non-Project Days',
             field: 'total_non_project_allocation',
             width: 160,
             valueFormatter: (params: any) => params.value !== undefined ? params.value.toFixed(1) : '0.0',
             cellStyle: { fontWeight: 'bold' }
-          },
+          } as ColDef,
           {
             headerName: 'Overall Total Days',
             field: 'total_overall_allocation',
             width: 140,
             valueFormatter: (params: any) => params.value !== undefined ? params.value.toFixed(1) : '0.0',
             cellStyle: { fontWeight: 'bold', backgroundColor: '#e0f0ff' }
-          },
+          } as ColDef,
         ],
         pinned: 'right'
-      }
+      } as ColGroupDef
     ];
   }, [selectedYear, projects, engineers, projectAllocations, nonProjectAllocations, monthlyCapacities, monthNames]);
-  // `fetchAllData` removed from dependencies as it's not directly used in columnDef creation
-  // and its memoized nature is managed by useCallback.
 
   const rowData = useMemo(() => {
     if (loading || error) return [];
@@ -537,7 +528,7 @@ const PlanningPage: React.FC = () => {
       if (rowIndex !== -1) {
         const monthKey = npa.allocation_month;
         const colKey = `month_total_non_project_${monthKey}`;
-        rows[rowIndex][colKey] = (rows[rowIndex][colKey] || 0) + npa.man_days_allocated; // Changed to man_days_allocated
+        rows[rowIndex][colKey] = (rows[rowIndex][colKey] || 0) + npa.man_days_allocated;
       }
     });
 
@@ -572,15 +563,8 @@ const PlanningPage: React.FC = () => {
 
   const getRowId = useCallback((params: any) => params.data.engineer_id, []);
 
-  // onCellValueChanged is now mostly handled by the valueSetter directly updating state
-  // You can keep this for any future global cell change logic, but it's not strictly necessary for this optimistic update pattern.
   const onCellValueChanged = useCallback((event: any) => {
-    // console.log('Cell value changed:', event.data, event.colDef.field, event.newValue);
-    // The valueSetter in columnDefs handles the API call and state update.
-    // If you need to trigger a full refresh on any cell change (e.g., if a
-    // backend calculation changes other values not directly edited), you could
-    // call fetchAllData() here, but be very careful about infinite loops.
-    // For now, it's best to rely on the direct state updates from valueSetter.
+    // This is handled by valueSetter in columnDefs, no need for separate logic here
   }, []);
 
   const onGridReady = useCallback((params: any) => {
@@ -613,7 +597,7 @@ const PlanningPage: React.FC = () => {
       {error && <Message negative header="Error" content={error} />}
 
       <div className="ag-theme-alpine" style={{ width: '100%', height: '700px', overflowX: 'auto' }}>
-        <AgGridReact<AllocationGridRow> // Explicitly type AgGridReact
+        <AgGridReact<AllocationGridRow>
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={{
