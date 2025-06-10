@@ -50,7 +50,7 @@ interface AllocationGridRow {
 }
 
 const getMonthKey = (date: Date): string => {
-  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-01`;
+  return `<span class="math-inline">\{date\.getFullYear\(\)\}\-</span>{(date.getMonth() + 1).toString().padStart(2, '0')}-01`;
 };
 
 const getDaysInMonth = (year: number, month: number): number => {
@@ -276,9 +276,7 @@ const PlanningPage: React.FC = () => {
     return options;
   };
 
-  // AG-Grid Configuration
-  // NO LONGER using useState for columnDefs, it's now useMemo
-  const columnDefs = useMemo(() => { // Changed from useState + useEffect to useMemo
+  const columnDefs = useMemo(() => {
     const dynamicMonthColumns = monthNames.map((monthName, index) => {
       const monthNum = index + 1;
       const monthDate = new Date(selectedYear, index, 1);
@@ -297,7 +295,7 @@ const PlanningPage: React.FC = () => {
           },
           ...projects.map(project => ({
             headerName: project.project_name,
-            field: `${project.project_id}_${monthKey}`,
+            field: `<span class="math-inline">\{project\.project\_id\}\_</span>{monthKey}`,
             width: 100,
             editable: true,
             cellEditor: 'agNumberCellEditor',
@@ -330,12 +328,12 @@ const PlanningPage: React.FC = () => {
                 pa.allocation_month === monthKey
               )?.allocation_id;
 
-              const capacity = params.data.monthly_capacity?.[monthKey] || 0; // Use optional chaining
-              const currentOverallAllocation = params.data[`month_total_overall_${monthKey}`] || 0; // Default to 0
+              const capacity = params.data.monthly_capacity?.[monthKey] || 0;
+              const currentOverallAllocation = params.data[`month_total_overall_${monthKey}`] || 0;
               const proposedOverallAllocation = currentOverallAllocation - oldValue + newValue;
 
-              if (capacity > 0 && proposedOverallAllocation > capacity) { // Only check if capacity is positive
-                  setError(`Proposed allocation (${proposedOverallAllocation.toFixed(1)} days) exceeds monthly capacity (${capacity.toFixed(1)} days) for ${params.data.engineer_name} in ${monthName}.`);
+              if (capacity > 0 && proposedOverallAllocation > capacity) {
+                  setError(`Proposed allocation (<span class="math-inline">\{proposedOverallAllocation\.toFixed\(1\)\} days\) exceeds monthly capacity \(</span>{capacity.toFixed(1)} days) for ${params.data.engineer_name} in ${monthName}.`);
                   return false;
               }
 
@@ -472,6 +470,74 @@ const PlanningPage: React.FC = () => {
     ];
   }, [selectedYear, projects, engineers, projectAllocations, nonProjectAllocations, monthlyCapacities, fetchAllData, monthNames]);
 
+  const rowData = useMemo(() => {
+    if (loading || error) return [];
+
+    const rows: AllocationGridRow[] = engineers.map(engineer => ({
+      engineer_id: engineer.engineer_id,
+      engineer_name: engineer.engineer_name,
+      line_manager: engineer.line_manager,
+      monthly_capacity: monthlyCapacities[engineer.engineer_id] || {},
+    }));
+
+    rows.forEach(row => {
+      for (let i = 0; i < 12; i++) {
+        const monthDate = new Date(selectedYear, i, 1);
+        const monthKey = getMonthKey(monthDate);
+        row[`month_total_project_${monthKey}`] = 0;
+        row[`month_total_non_project_${monthKey}`] = 0;
+        row[`month_total_overall_${monthKey}`] = 0;
+        row[`utilization_${monthKey}`] = 0;
+      }
+    });
+
+    projectAllocations.forEach(pa => {
+      const rowIndex = rows.findIndex(r => r.engineer_id === pa.engineer_id);
+      if (rowIndex !== -1) {
+        const monthKey = pa.allocation_month;
+        const colKey = `month_total_project_${monthKey}`;
+        rows[rowIndex][colKey] = (rows[rowIndex][colKey] || 0) + pa.man_days_allocated;
+      }
+    });
+
+    nonProjectAllocations.forEach(npa => {
+      const rowIndex = rows.findIndex(r => r.engineer_id === npa.engineer_id);
+      if (rowIndex !== -1) {
+        const monthKey = npa.allocation_month;
+        const colKey = `month_total_non_project_${monthKey}`;
+        rows[rowIndex][colKey] = (rows[rowIndex][colKey] || 0) + npa.days_allocated;
+      }
+    });
+
+    rows.forEach(row => {
+      let total_project_allocation = 0;
+      let total_non_project_allocation = 0;
+      for (let i = 0; i < 12; i++) {
+        const monthDate = new Date(selectedYear, i, 1);
+        const monthKey = getMonthKey(monthDate);
+        const projectDays = row[`month_total_project_${monthKey}`] || 0;
+        const nonProjectDays = row[`month_total_non_project_${monthKey}`] || 0;
+        const monthlyCapacity = row.monthly_capacity?.[monthKey] || 0;
+
+        row[`month_total_overall_${monthKey}`] = projectDays + nonProjectDays;
+        total_project_allocation += projectDays;
+        total_non_project_allocation += nonProjectDays;
+
+        if (monthlyCapacity > 0) {
+          row[`utilization_${monthKey}`] = (row[`month_total_overall_${monthKey}`] / monthlyCapacity) * 100;
+        } else {
+          row[`utilization_${monthKey}`] = 0;
+        }
+      }
+      row.total_project_allocation = total_project_allocation;
+      row.total_non_project_allocation = total_non_project_allocation;
+      row.total_overall_allocation = total_project_allocation + total_non_project_allocation;
+    });
+
+    return rows;
+  }, [engineers, projectAllocations, nonProjectAllocations, monthlyCapacities, selectedYear, loading, error]);
+
+
   const getRowId = useCallback((params: any) => params.data.engineer_id, []);
 
   const onCellValueChanged = useCallback((event: any) => {
@@ -509,7 +575,7 @@ const PlanningPage: React.FC = () => {
       {error && <Message negative header="Error" content={error} />}
 
       <div className="ag-theme-alpine" style={{ width: '100%', height: '700px', overflowX: 'auto' }}>
-        <AgGridReact
+        <AgGridReact<AllocationGridRow> // Explicitly type AgGridReact
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={{
@@ -589,78 +655,3 @@ const PlanningPage: React.FC = () => {
 
       {/* Non-Project Allocation Modal */}
       <Modal open={showNonProjectAllocationModal} onClose={() => { setShowNonProjectAllocationModal(false); resetForm(); }} closeIcon>
-        <Modal.Header>{isEditingNonProjectAllocation ? 'Edit Non-Project Time Allocation' : 'Add Non-Project Time Allocation'}</Modal.Header>
-        <Modal.Content>
-          <Form onSubmit={handleCreateOrUpdateNonProjectAllocation} loading={loading}>
-            <Form.Field>
-              <label>Engineer</label>
-              <Dropdown
-                placeholder='Select Engineer'
-                selection
-                options={engineerOptions}
-                value={formEngineerId || ''}
-                onChange={(e, { value }) => setFormEngineerId(value as number)}
-                disabled={isEditingNonProjectAllocation}
-              />
-            </Form.Field>
-            <Form.Field>
-              <label>Type of Leave/Time</label>
-              <Dropdown
-                placeholder='Select Type'
-                selection
-                options={nonProjectTypeOptions}
-                value={formNonProjectType}
-                onChange={(e, { value }) => setFormNonProjectType(value as string)}
-                disabled={isEditingNonProjectAllocation}
-              />
-            </Form.Field>
-            <Form.Field>
-              <label>Month</label>
-              <Dropdown
-                placeholder='Select Month'
-                selection
-                options={generateMonthOptions()}
-                value={formAllocationMonth}
-                onChange={(e, { value }) => setFormAllocationMonth(value as string)}
-                disabled={isEditingNonProjectAllocation}
-              />
-            </Form.Field>
-            <Form.Field>
-              <label>Days Allocated</label>
-              <Input
-                type="number"
-                step="0.1"
-                placeholder="Days"
-                value={formManDaysAllocated}
-                onChange={(e) => setFormManDaysAllocated(parseFloat(e.target.value))}
-                required
-              />
-            </Form.Field>
-            {error && <Message negative content={error} />}
-            <Button primary type='submit'>{isEditingNonProjectAllocation ? 'Update Allocation' : 'Create Allocation'}</Button>
-            {isEditingNonProjectAllocation && currentNonProjectAllocation && (
-              <Button color='red' onClick={() => {
-                setAllocationToDelete({ id: currentNonProjectAllocation.non_project_allocation_id, type: 'non-project' });
-                setConfirmDeleteOpen(true);
-              }}>
-                Delete Allocation
-              </Button>
-            )}
-          </Form>
-        </Modal.Content>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Confirm
-        open={confirmDeleteOpen}
-        onCancel={() => setConfirmDeleteOpen(false)}
-        onConfirm={handleDeleteAllocation}
-        content='Are you sure you want to delete this allocation?'
-        cancelButton='No'
-        confirmButton='Yes, Delete'
-      />
-    </Segment>
-  );
-};
-
-export default PlanningPage;
