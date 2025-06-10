@@ -54,6 +54,7 @@ const getMonthKey = (date: Date): string => {
 };
 
 const getDaysInMonth = (year: number, month: number): number => {
+  // Use 0 for day to get the last day of the previous month, which is the last day of the desired month
   return new Date(year, month, 0).getDate();
 };
 
@@ -264,7 +265,6 @@ const PlanningPage: React.FC = () => {
     text: type,
   }));
 
-  const currentMonthDate = new Date(selectedYear, new Date().getMonth(), 1);
   const generateMonthOptions = () => {
     const options = [];
     for (let i = 0; i < 12; i++) {
@@ -277,82 +277,8 @@ const PlanningPage: React.FC = () => {
   };
 
   // AG-Grid Configuration
-  const [columnDefs, setColumnDefs] = useState<any[]>([]);
-
-  // Prepare row data for the grid
-  const rowData = useMemo(() => {
-    if (loading || error) return [];
-
-    const rows: AllocationGridRow[] = engineers.map(engineer => ({
-      engineer_id: engineer.engineer_id,
-      engineer_name: engineer.engineer_name,
-      line_manager: engineer.line_manager,
-      monthly_capacity: monthlyCapacities[engineer.engineer_id] || {}, // Store capacity per month
-    }));
-
-    // Initialize monthly allocation sums for each engineer
-    rows.forEach(row => {
-      for (let i = 0; i < 12; i++) {
-        const monthDate = new Date(selectedYear, i, 1);
-        const monthKey = getMonthKey(monthDate);
-        row[`month_total_project_${monthKey}`] = 0;
-        row[`month_total_non_project_${monthKey}`] = 0;
-        row[`month_total_overall_${monthKey}`] = 0;
-        row[`utilization_${monthKey}`] = 0; // Initialize utilization
-      }
-    });
-
-    // Aggregate project allocations
-    projectAllocations.forEach(pa => {
-      const rowIndex = rows.findIndex(r => r.engineer_id === pa.engineer_id);
-      if (rowIndex !== -1) {
-        const monthKey = pa.allocation_month;
-        const colKey = `month_total_project_${monthKey}`;
-        rows[rowIndex][colKey] = (rows[rowIndex][colKey] || 0) + pa.man_days_allocated;
-      }
-    });
-
-    // Aggregate non-project allocations
-    nonProjectAllocations.forEach(npa => {
-      const rowIndex = rows.findIndex(r => r.engineer_id === npa.engineer_id);
-      if (rowIndex !== -1) {
-        const monthKey = npa.allocation_month;
-        const colKey = `month_total_non_project_${monthKey}`;
-        rows[rowIndex][colKey] = (rows[rowIndex][colKey] || 0) + npa.days_allocated;
-      }
-    });
-
-    // Calculate total overall allocation and utilization
-    rows.forEach(row => {
-      let total_project_allocation = 0;
-      let total_non_project_allocation = 0;
-      for (let i = 0; i < 12; i++) {
-        const monthDate = new Date(selectedYear, i, 1);
-        const monthKey = getMonthKey(monthDate);
-        const projectDays = row[`month_total_project_${monthKey}`] || 0;
-        const nonProjectDays = row[`month_total_non_project_${monthKey}`] || 0;
-        const monthlyCapacity = row.monthly_capacity?.[monthKey] || 0;
-
-        row[`month_total_overall_${monthKey}`] = projectDays + nonProjectDays;
-        total_project_allocation += projectDays;
-        total_non_project_allocation += nonProjectDays;
-
-        if (monthlyCapacity > 0) {
-          row[`utilization_${monthKey}`] = (row[`month_total_overall_${monthKey}`] / monthlyCapacity) * 100;
-        } else {
-          row[`utilization_${monthKey}`] = 0;
-        }
-      }
-      row.total_project_allocation = total_project_allocation;
-      row.total_non_project_allocation = total_non_project_allocation;
-      row.total_overall_allocation = total_project_allocation + total_non_project_allocation;
-    });
-
-    return rows;
-  }, [engineers, projectAllocations, nonProjectAllocations, monthlyCapacities, selectedYear, loading, error]);
-
-
-  useEffect(() => {
+  // NO LONGER using useState for columnDefs, it's now useMemo
+  const columnDefs = useMemo(() => { // Changed from useState + useEffect to useMemo
     const dynamicMonthColumns = monthNames.map((monthName, index) => {
       const monthNum = index + 1;
       const monthDate = new Date(selectedYear, index, 1);
@@ -367,11 +293,11 @@ const PlanningPage: React.FC = () => {
             field: `monthly_capacity.${monthKey}`,
             width: 90,
             valueFormatter: (params: any) => params.value !== undefined ? params.value.toFixed(1) : 'N/A',
-            cellStyle: { fontWeight: 'bold' } // Emphasize capacity
+            cellStyle: { fontWeight: 'bold' }
           },
           ...projects.map(project => ({
             headerName: project.project_name,
-            field: `${project.project_id}_${monthKey}`, // Unique field for project allocation
+            field: `${project.project_id}_${monthKey}`,
             width: 100,
             editable: true,
             cellEditor: 'agNumberCellEditor',
@@ -394,7 +320,7 @@ const PlanningPage: React.FC = () => {
 
               if (isNaN(newValue) || newValue < 0 || newValue > totalDaysInMonth) {
                 setError(`Allocation for ${monthName} must be between 0 and ${totalDaysInMonth} days.`);
-                return false; // Prevent update
+                return false;
               }
 
               const engineerId = params.data.engineer_id;
@@ -404,14 +330,13 @@ const PlanningPage: React.FC = () => {
                 pa.allocation_month === monthKey
               )?.allocation_id;
 
-              const capacity = params.data.monthly_capacity[monthKey];
-              const currentOverallAllocation = params.data[`month_total_overall_${monthKey}`];
-              // Calculate proposed new total
+              const capacity = params.data.monthly_capacity?.[monthKey] || 0; // Use optional chaining
+              const currentOverallAllocation = params.data[`month_total_overall_${monthKey}`] || 0; // Default to 0
               const proposedOverallAllocation = currentOverallAllocation - oldValue + newValue;
 
-              if (proposedOverallAllocation > capacity) {
+              if (capacity > 0 && proposedOverallAllocation > capacity) { // Only check if capacity is positive
                   setError(`Proposed allocation (${proposedOverallAllocation.toFixed(1)} days) exceeds monthly capacity (${capacity.toFixed(1)} days) for ${params.data.engineer_name} in ${monthName}.`);
-                  return false; // Prevent update
+                  return false;
               }
 
 
@@ -428,7 +353,7 @@ const PlanningPage: React.FC = () => {
                 } else {
                   await createProjectAllocation(allocationData);
                 }
-                fetchAllData(); // Re-fetch to update all sums and utilization
+                fetchAllData();
                 return true;
               } catch (err: any) {
                 console.error("Error updating project allocation:", err);
@@ -439,7 +364,7 @@ const PlanningPage: React.FC = () => {
           })),
           {
             headerName: 'Non-Project',
-            field: `non_project_${monthKey}`, // Placeholder for a button/modal trigger
+            field: `non_project_${monthKey}`,
             width: 120,
             cellRenderer: (params: any) => {
               const engineerId = params.data.engineer_id;
@@ -482,8 +407,8 @@ const PlanningPage: React.FC = () => {
             cellStyle: (params: any) => {
                 const capacity = params.data.monthly_capacity?.[monthKey] || 0;
                 const allocated = params.value || 0;
-                if (allocated > capacity) {
-                    return { backgroundColor: '#f0e0e0', color: 'red', fontWeight: 'bold' }; // Light red for over-allocation
+                if (capacity > 0 && allocated > capacity) {
+                    return { backgroundColor: '#f0e0e0', color: 'red', fontWeight: 'bold' };
                 }
                 return { fontWeight: 'bold' };
             }
@@ -507,7 +432,7 @@ const PlanningPage: React.FC = () => {
       };
     });
 
-    setColumnDefs([
+    return [
       {
         headerName: 'Engineer Info',
         children: [
@@ -516,7 +441,7 @@ const PlanningPage: React.FC = () => {
           { headerName: 'Line Manager', field: 'line_manager', width: 120, pinned: 'left' },
         ],
       },
-      ...dynamicMonthColumns, // Dynamic month columns
+      ...dynamicMonthColumns,
       {
         headerName: 'Totals',
         children: [
@@ -544,8 +469,8 @@ const PlanningPage: React.FC = () => {
         ],
         pinned: 'right'
       }
-    ]);
-  }, [selectedYear, projects, engineers, projectAllocations, nonProjectAllocations, monthlyCapacities, fetchAllData, monthNames]); // Re-generate columns when projects/allocations change
+    ];
+  }, [selectedYear, projects, engineers, projectAllocations, nonProjectAllocations, monthlyCapacities, fetchAllData, monthNames]);
 
   const getRowId = useCallback((params: any) => params.data.engineer_id, []);
 
@@ -612,7 +537,7 @@ const PlanningPage: React.FC = () => {
                 options={engineerOptions}
                 value={formEngineerId || ''}
                 onChange={(e, { value }) => setFormEngineerId(value as number)}
-                disabled={isEditingProjectAllocation} // Disable engineer selection when editing
+                disabled={isEditingProjectAllocation}
               />
             </Form.Field>
             <Form.Field>
@@ -623,7 +548,7 @@ const PlanningPage: React.FC = () => {
                 options={projectOptions}
                 value={formProjectId || ''}
                 onChange={(e, { value }) => setFormProjectId(value as number)}
-                disabled={isEditingProjectAllocation} // Disable project selection when editing
+                disabled={isEditingProjectAllocation}
               />
             </Form.Field>
             <Form.Field>
@@ -634,7 +559,7 @@ const PlanningPage: React.FC = () => {
                 options={generateMonthOptions()}
                 value={formAllocationMonth}
                 onChange={(e, { value }) => setFormAllocationMonth(value as string)}
-                disabled={isEditingProjectAllocation} // Disable month selection when editing
+                disabled={isEditingProjectAllocation}
               />
             </Form.Field>
             <Form.Field>
@@ -675,7 +600,7 @@ const PlanningPage: React.FC = () => {
                 options={engineerOptions}
                 value={formEngineerId || ''}
                 onChange={(e, { value }) => setFormEngineerId(value as number)}
-                disabled={isEditingNonProjectAllocation} // Disable engineer selection when editing
+                disabled={isEditingNonProjectAllocation}
               />
             </Form.Field>
             <Form.Field>
@@ -686,7 +611,7 @@ const PlanningPage: React.FC = () => {
                 options={nonProjectTypeOptions}
                 value={formNonProjectType}
                 onChange={(e, { value }) => setFormNonProjectType(value as string)}
-                disabled={isEditingNonProjectAllocation} // Disable type selection when editing
+                disabled={isEditingNonProjectAllocation}
               />
             </Form.Field>
             <Form.Field>
@@ -697,7 +622,7 @@ const PlanningPage: React.FC = () => {
                 options={generateMonthOptions()}
                 value={formAllocationMonth}
                 onChange={(e, { value }) => setFormAllocationMonth(value as string)}
-                disabled={isEditingNonProjectAllocation} // Disable month selection when editing
+                disabled={isEditingNonProjectAllocation}
               />
             </Form.Field>
             <Form.Field>
