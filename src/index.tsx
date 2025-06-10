@@ -1,7 +1,7 @@
 // src/components/PlanningPage.tsx
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'; // Added useRef
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, ColGroupDef, ValueSetterParams, CellValueChangedEvent, GridApi } from 'ag-grid-community'; // Added CellValueChangedEvent, GridApi
+import { ColDef, ColGroupDef, ValueSetterParams, CellValueChangedEvent, GridApi } from 'ag-grid-community';
 import {
   Dropdown,
   Button,
@@ -36,29 +36,34 @@ import {
   ProjectAllocationCreate,
   NonProjectAllocation,
   NonProjectAllocationCreate
-} from '../models/apiModels';
+} from '../models/apiModels'; // Ensure this path is correct
 
+// Interface for a single row in the Ag-Grid table
 interface AllocationGridRow {
   engineer_id: number;
   engineer_name: string;
   line_manager: string;
-  [key: string]: any;
+  [key: string]: any; // For dynamic month columns (e.g., '2023-01-01_project_1', 'monthly_capacity.2023-01-01')
   total_project_allocation?: number;
   total_non_project_allocation?: number;
   total_overall_allocation?: number;
-  monthly_capacity?: { [monthKey: string]: number };
-  utilization_percentage?: { [monthKey: string]: number };
+  monthly_capacity?: { [monthKey: string]: number }; // Object mapping month keys to capacity
+  utilization_percentage?: { [monthKey: string]: number }; // Object mapping month keys to utilization %
 }
 
+// Helper function to generate a consistent month key (e.g., "YYYY-MM-01")
 const getMonthKey = (date: Date): string => {
   return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-01`;
 };
 
+// Helper function to get the number of days in a given month
 const getDaysInMonth = (year: number, month: number): number => {
+  // Use 0 for day to get the last day of the previous month, which is the last day of the desired month
   return new Date(year, month, 0).getDate();
 };
 
 const PlanningPage: React.FC = () => {
+  // --- State Variables ---
   const [engineers, setEngineers] = useState<Engineer[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectAllocations, setProjectAllocations] = useState<ProjectAllocation[]>([]);
@@ -69,6 +74,7 @@ const PlanningPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // --- Modal and Form State ---
   const [showProjectAllocationModal, setShowProjectAllocationModal] = useState(false);
   const [showNonProjectAllocationModal, setShowNonProjectAllocationModal] = useState(false);
   const [isEditingProjectAllocation, setIsEditingProjectAllocation] = useState(false);
@@ -85,12 +91,14 @@ const PlanningPage: React.FC = () => {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [allocationToDelete, setAllocationToDelete] = useState<{ id: number; type: 'project' | 'non-project' } | null>(null);
 
-  const gridApiRef = useRef<GridApi | null>(null); // Ref to store Ag-Grid API
+  const gridApiRef = useRef<GridApi | null>(null); // Ref to store Ag-Grid API instance
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2);
+  // --- Static Data/Options ---
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i - 2); // Current year +/- 2
   const monthNames = Array.from({ length: 12 }, (_, i) => new Date(0, i).toLocaleString('default', { month: 'long' }));
   const nonProjectTypes = ['Holiday', 'Training', 'Admin', 'Leave', 'Other'];
 
+  // --- Data Fetching Logic ---
   const fetchAllData = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -113,12 +121,14 @@ const PlanningPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedYear]);
+  }, [selectedYear]); // Re-create fetchAllData only if selectedYear changes
 
+  // Effect to run fetchAllData on component mount or when selectedYear changes
   useEffect(() => {
     fetchAllData();
   }, [fetchAllData]);
 
+  // --- Form and Modal Handlers ---
   const populateFormForEdit = (allocation: ProjectAllocation | NonProjectAllocation, type: 'project' | 'non-project') => {
     setFormEngineerId(allocation.engineer_id);
     setFormAllocationMonth(allocation.allocation_month);
@@ -140,7 +150,7 @@ const PlanningPage: React.FC = () => {
   };
 
   const handleCreateOrUpdateProjectAllocation = async () => {
-    setError(null);
+    setError(null); // Clear previous errors
     if (formEngineerId === null || formProjectId === null || formAllocationMonth === '' || formManDaysAllocated === '') {
       setError("All fields are required.");
       return;
@@ -157,6 +167,7 @@ const PlanningPage: React.FC = () => {
     try {
       let updatedAllocation: ProjectAllocation;
       if (isEditingProjectAllocation && currentProjectAllocation) {
+        // Update existing allocation
         updatedAllocation = await updateProjectAllocation(currentProjectAllocation.allocation_id, allocationData);
         setProjectAllocations(prev =>
           prev.map(alloc =>
@@ -164,11 +175,12 @@ const PlanningPage: React.FC = () => {
           )
         );
       } else {
+        // Create new allocation
         updatedAllocation = await createProjectAllocation(allocationData);
         setProjectAllocations(prev => [...prev, updatedAllocation]);
       }
       setShowProjectAllocationModal(false);
-      resetForm();
+      resetForm(); // Reset form fields and editing state
     } catch (err: any) {
       console.error("Error saving project allocation:", err);
       setError(err.response?.data?.detail || "Failed to save project allocation. Check if allocation exceeds capacity.");
@@ -178,7 +190,7 @@ const PlanningPage: React.FC = () => {
   };
 
   const handleCreateOrUpdateNonProjectAllocation = async () => {
-    setError(null);
+    setError(null); // Clear previous errors
     if (formEngineerId === null || formNonProjectType === '' || formAllocationMonth === '' || formManDaysAllocated === '') {
       setError("All fields are required.");
       return;
@@ -195,6 +207,7 @@ const PlanningPage: React.FC = () => {
     try {
       let updatedAllocation: NonProjectAllocation;
       if (isEditingNonProjectAllocation && currentNonProjectAllocation) {
+        // Update existing non-project allocation
         updatedAllocation = await updateNonProjectAllocation(currentNonProjectAllocation.non_project_allocation_id, allocationData);
         setNonProjectAllocations(prev =>
           prev.map(alloc =>
@@ -202,11 +215,12 @@ const PlanningPage: React.FC = () => {
           )
         );
       } else {
+        // Create new non-project allocation
         updatedAllocation = await createNonProjectAllocation(allocationData);
         setNonProjectAllocations(prev => [...prev, updatedAllocation]);
       }
       setShowNonProjectAllocationModal(false);
-      resetForm();
+      resetForm(); // Reset form fields and editing state
     } catch (err: any) {
       console.error("Error saving non-project allocation:", err);
       setError(err.response?.data?.detail || "Failed to save non-project allocation. Check if allocation exceeds capacity.");
@@ -216,10 +230,10 @@ const PlanningPage: React.FC = () => {
   };
 
   const handleDeleteAllocation = async () => {
-    if (!allocationToDelete) return;
+    if (!allocationToDelete) return; // Should not happen if confirmed
 
     setLoading(true);
-    setError(null);
+    setError(null); // Clear previous errors
     try {
       if (allocationToDelete.type === 'project') {
         await deleteProjectAllocation(allocationToDelete.id);
@@ -233,8 +247,8 @@ const PlanningPage: React.FC = () => {
       setError(err.response?.data?.detail || "Failed to delete allocation.");
     } finally {
       setLoading(false);
-      setConfirmDeleteOpen(false);
-      setAllocationToDelete(null);
+      setConfirmDeleteOpen(false); // Close confirmation modal
+      setAllocationToDelete(null); // Clear item to delete
     }
   };
 
@@ -248,7 +262,7 @@ const PlanningPage: React.FC = () => {
     setIsEditingNonProjectAllocation(false);
     setCurrentProjectAllocation(null);
     setCurrentNonProjectAllocation(null);
-    setError(null);
+    setError(null); // Clear form-specific errors
   };
 
   const handleOpenProjectAllocationModal = () => {
@@ -261,6 +275,7 @@ const PlanningPage: React.FC = () => {
     setShowNonProjectAllocationModal(true);
   };
 
+  // --- Dropdown Options Generation ---
   const engineerOptions = engineers.map(eng => ({
     key: eng.engineer_id,
     value: eng.engineer_id,
@@ -290,7 +305,9 @@ const PlanningPage: React.FC = () => {
     return options;
   };
 
-  const columnDefs = useMemo<Array<ColDef | ColGroupDef>>(() => {
+  // --- AG-Grid Configuration (Column Definitions) ---
+  // Memoized to prevent unnecessary re-creations unless dependencies change
+  const columnDefs = useMemo<Array<ColDef | ColGroupDef>>(() => { // Explicitly type columnDefs
     const dynamicMonthColumns = monthNames.map((monthName, index) => {
       const monthNum = index + 1;
       const monthDate = new Date(selectedYear, index, 1);
@@ -306,7 +323,7 @@ const PlanningPage: React.FC = () => {
             width: 90,
             valueFormatter: (params: any) => params.value !== undefined ? params.value.toFixed(1) : 'N/A',
             cellStyle: { fontWeight: 'bold' }
-          } as ColDef,
+          } as ColDef, // Cast individual column as ColDef
           ...projects.map(project => ({
             headerName: project.project_name,
             field: `${project.project_id}_${monthKey}`,
@@ -377,8 +394,8 @@ const PlanningPage: React.FC = () => {
                     allocation_month: monthKey,
                     man_days_allocated: newValue,
                     // Add other fields that might be expected by ProjectAllocation
-                    // If your ProjectAllocation type has more non-optional fields,
-                    // you'll need to fill them or make them optional in your model.
+                    // If your ProjectAllocation type has more non-optional fields (e.g., created_at, updated_at),
+                    // you'll need to provide placeholder values or make them optional in your model.
                     created_at: new Date().toISOString(), // Placeholder
                     updated_at: new Date().toISOString(), // Placeholder
                   };
@@ -389,12 +406,12 @@ const PlanningPage: React.FC = () => {
               // --- Return true to allow Ag-Grid to update the cell visually ---
               return true;
             },
-          }) as ColDef),
+          }) as ColDef), // Cast individual project column as ColDef
           {
             headerName: 'Non-Project',
             field: `non_project_${monthKey}`,
             width: 120,
-            cellRenderer: (params: any) => {
+            cellRenderer: (params: any) => { // params here is ICellRendererParams
               const engineerId = params.data.engineer_id;
               const allocations = nonProjectAllocations.filter(npa =>
                 npa.engineer_id === engineerId &&
@@ -410,8 +427,10 @@ const PlanningPage: React.FC = () => {
                     size="mini"
                     compact
                     onClick={() => {
+                      // Set form initial values based on the row/month clicked
                       setFormEngineerId(engineerId);
                       setFormAllocationMonth(monthKey);
+                      // Clear any existing non-project allocation data for 'add'
                       setCurrentNonProjectAllocation(null);
                       setIsEditingNonProjectAllocation(false);
                       handleOpenNonProjectAllocationModal();
@@ -420,7 +439,7 @@ const PlanningPage: React.FC = () => {
                 </div>
               );
             },
-            tooltipValueGetter: (params: any) => {
+            tooltipValueGetter: (params: any) => { // params here is ITooltipParams
                 const engineerId = params.data.engineer_id;
                 const allocations = nonProjectAllocations.filter(npa =>
                     npa.engineer_id === engineerId &&
@@ -428,7 +447,7 @@ const PlanningPage: React.FC = () => {
                 );
                 return allocations.map(npa => `${npa.type}: ${npa.man_days_allocated}`).join(', ');
             }
-          } as ColDef,
+          } as ColDef, // Cast as ColDef
           {
             headerName: 'Total Allocated',
             field: `month_total_overall_${monthKey}`,
@@ -442,7 +461,7 @@ const PlanningPage: React.FC = () => {
                 }
                 return { fontWeight: 'bold' };
             }
-          } as ColDef,
+          } as ColDef, // Cast as ColDef
           {
             headerName: 'Utilization (%)',
             field: `utilization_${monthKey}`,
@@ -457,9 +476,9 @@ const PlanningPage: React.FC = () => {
               }
               return null;
             }
-          } as ColDef
+          } as ColDef // Cast as ColDef
         ],
-      } as ColGroupDef;
+      } as ColGroupDef; // Cast dynamic month group as ColGroupDef
     });
 
     return [
@@ -470,7 +489,7 @@ const PlanningPage: React.FC = () => {
           { headerName: 'Engineer Name', field: 'engineer_name', width: 150, pinned: 'left' } as ColDef,
           { headerName: 'Line Manager', field: 'line_manager', width: 120, pinned: 'left' } as ColDef,
         ],
-      } as ColGroupDef,
+      } as ColGroupDef, // Cast Engineer Info group as ColGroupDef
       ...dynamicMonthColumns,
       {
         headerName: 'Totals',
@@ -498,12 +517,14 @@ const PlanningPage: React.FC = () => {
           } as ColDef,
         ],
         pinned: 'right'
-      } as ColGroupDef
+      } as ColGroupDef // Cast Totals group as ColGroupDef
     ];
   }, [selectedYear, projects, engineers, projectAllocations, nonProjectAllocations, monthlyCapacities, monthNames]);
 
+  // --- AG-Grid Data (Row Data) ---
+  // Memoized to prevent unnecessary re-creations unless dependencies change
   const rowData = useMemo(() => {
-    if (loading || error) return [];
+    if (loading || error) return []; // Return empty array if loading or error
 
     const rows: AllocationGridRow[] = engineers.map(engineer => ({
       engineer_id: engineer.engineer_id,
@@ -512,6 +533,7 @@ const PlanningPage: React.FC = () => {
       monthly_capacity: monthlyCapacities[engineer.engineer_id] || {},
     }));
 
+    // Initialize monthly total fields for each engineer
     rows.forEach(row => {
       for (let i = 0; i < 12; i++) {
         const monthDate = new Date(selectedYear, i, 1);
@@ -523,6 +545,7 @@ const PlanningPage: React.FC = () => {
       }
     });
 
+    // Populate project allocations into rows
     projectAllocations.forEach(pa => {
       const rowIndex = rows.findIndex(r => r.engineer_id === pa.engineer_id);
       if (rowIndex !== -1) {
@@ -532,6 +555,7 @@ const PlanningPage: React.FC = () => {
       }
     });
 
+    // Populate non-project allocations into rows
     nonProjectAllocations.forEach(npa => {
       const rowIndex = rows.findIndex(r => r.engineer_id === npa.engineer_id);
       if (rowIndex !== -1) {
@@ -541,6 +565,7 @@ const PlanningPage: React.FC = () => {
       }
     });
 
+    // Calculate overall totals and utilization
     rows.forEach(row => {
       let total_project_allocation = 0;
       let total_non_project_allocation = 0;
@@ -570,15 +595,23 @@ const PlanningPage: React.FC = () => {
   }, [engineers, projectAllocations, nonProjectAllocations, monthlyCapacities, selectedYear, loading, error]);
 
 
+  // --- AG-Grid Callbacks ---
   const getRowId = useCallback((params: any) => params.data.engineer_id, []);
 
-  // Handle API calls after cell value is changed in the grid
+  // onCellValueChanged is where the asynchronous API call and error handling occurs
   const onCellValueChanged = useCallback(async (event: CellValueChangedEvent<AllocationGridRow>) => {
-    const { data, colDef, newValue, oldValue } = event;
-    const field = colDef.field;
+    const { data, colDef, newValue, oldValue, node } = event;
+
+    // Type guard for colDef.field
+    if (!colDef.field || typeof colDef.field !== 'string') {
+        console.error("Column field is not a string, cannot process change.", colDef.field);
+        return; // Exit if field is not a string
+    }
+
+    const field = colDef.field; // Now TypeScript knows 'field' is a string
 
     // Check if the changed field is one of our dynamic project allocation fields
-    if (field && typeof field === 'string' && field.includes('_')) {
+    if (field.includes('_')) {
         const [projectIdStr, monthKey] = field.split('_');
         const projectId = parseInt(projectIdStr);
         const engineerId = data?.engineer_id;
@@ -586,12 +619,12 @@ const PlanningPage: React.FC = () => {
         if (isNaN(projectId) || engineerId === undefined || !monthKey) {
             console.error("Invalid field format or data for cell change.");
             setError("Invalid cell data for update.");
-            // Revert cell visually if something is critically wrong with the data
             if (gridApiRef.current) {
+                // Refresh cells to revert visually if initial data is bad
                 event.api.refreshCells({
-                    rowNodes: [event.node],
+                    rowNodes: [node],
                     columns: [colDef],
-                    force: true, // Force refresh to get data from state
+                    force: true,
                 });
             }
             return;
@@ -605,46 +638,50 @@ const PlanningPage: React.FC = () => {
         };
 
         try {
-            const existingAllocation = projectAllocations.find(pa =>
+            // Find the *current* state of the allocation before the API call
+            // This is important because the local state might have a temporary ID.
+            const existingAllocationBeforeApiCall = projectAllocations.find(pa =>
                 pa.engineer_id === engineerId &&
                 pa.project_id === projectId &&
                 pa.allocation_month === monthKey
             );
 
-            if (existingAllocation?.allocation_id && existingAllocation.allocation_id > 0) { // Check for real ID
-                // Update existing allocation
-                const updatedAllocation = await updateProjectAllocation(existingAllocation.allocation_id, allocationData);
-                setProjectAllocations(prev =>
-                    prev.map(alloc =>
-                        alloc.allocation_id === updatedAllocation.allocation_id ? updatedAllocation : alloc
-                    )
-                );
+            let receivedAllocation: ProjectAllocation;
+
+            if (existingAllocationBeforeApiCall?.allocation_id && existingAllocationBeforeApiCall.allocation_id > 0) {
+                // If it has a real ID, it's an update
+                receivedAllocation = await updateProjectAllocation(existingAllocationBeforeApiCall.allocation_id, allocationData);
             } else {
-                // Create new allocation (using the temporary ID from valueSetter to find it)
-                const createdAllocation = await createProjectAllocation(allocationData);
-                setProjectAllocations(prev => prev.map(alloc =>
-                    // Find the allocation by its temporary ID (engineer_id + project_id + monthKey combo)
-                    // and replace it with the real one returned from the API
-                    (alloc.engineer_id === engineerId && alloc.project_id === projectId && alloc.allocation_month === monthKey && alloc.allocation_id < 0)
-                        ? createdAllocation
-                        : alloc
-                ));
+                // If it has a temporary ID (or no ID if it was truly new) it's a create
+                receivedAllocation = await createProjectAllocation(allocationData);
             }
-            setError(null); // Clear error on successful API call
+
+            // Update state with the confirmed data from the API
+            setProjectAllocations(prev => prev.map(alloc =>
+                // Match by real ID for existing allocations
+                alloc.allocation_id === receivedAllocation.allocation_id
+                    ? receivedAllocation
+                    // Match by temporary ID (if it was a new creation) and replace with real ID
+                    : (alloc.engineer_id === engineerId && alloc.project_id === projectId && alloc.allocation_month === monthKey && alloc.allocation_id < 0)
+                        ? receivedAllocation
+                        : alloc
+            ));
+            setError(null); // Clear any previous errors on successful API call
+
         } catch (err: any) {
             console.error("Error updating project allocation:", err);
             setError(err.response?.data?.detail || `Failed to update allocation for ${data?.engineer_name}. Reverting cell.`);
 
-            // --- Critical for Reverting on API Failure ---
-            // If the API call fails, revert the cell in the grid and the local state
+            // --- Revert local state and grid visuals on API failure ---
             setProjectAllocations(prevAllocations => {
                 const revertedAllocations = prevAllocations.map(alloc => {
                     if (alloc.engineer_id === engineerId && alloc.project_id === projectId && alloc.allocation_month === monthKey) {
-                        if (existingAllocation) {
-                            // If it was an update, revert to oldValue
+                        // Check if it was an existing allocation or a new (failed) one
+                        if (existingAllocationBeforeApiCall?.allocation_id && existingAllocationBeforeApiCall.allocation_id > 0) {
+                            // If it was an update, revert to the old value
                             return { ...alloc, man_days_allocated: oldValue };
                         } else {
-                            // If it was a new creation that failed, remove the temporary allocation
+                            // If it was a new creation that failed, remove the temporary allocation from state
                             return null; // Mark for removal
                         }
                     }
@@ -656,21 +693,22 @@ const PlanningPage: React.FC = () => {
             // Force Ag-Grid to re-render the cell from the updated (reverted) rowData
             if (gridApiRef.current) {
                 event.api.refreshCells({
-                    rowNodes: [event.node],
+                    rowNodes: [node], // Use the node from the event
                     columns: [colDef],
                     force: true, // Force refresh to get data from state
                 });
             }
         }
     }
-  }, [projectAllocations, nonProjectAllocations]); // Dependencies for onCellValueChanged
+  }, [projectAllocations]); // projectAllocations is a dependency because we `find` from it.
 
   const onGridReady = useCallback((params: any) => {
-    gridApiRef.current = params.api; // Store the grid API
+    gridApiRef.current = params.api; // Store the grid API instance
     // params.api.sizeColumnsToFit(); // Optional: Auto-size columns on grid ready
   }, []);
 
 
+  // --- Rendered JSX ---
   return (
     <Segment raised className="planning-page">
       <Header as='h2'>
@@ -695,7 +733,7 @@ const PlanningPage: React.FC = () => {
       {error && <Message negative header="Error" content={error} />}
 
       <div className="ag-theme-alpine" style={{ width: '100%', height: '700px', overflowX: 'auto' }}>
-        <AgGridReact<AllocationGridRow>
+        <AgGridReact<AllocationGridRow> // Explicitly type AgGridReact with your row data interface
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={{
@@ -723,7 +761,7 @@ const PlanningPage: React.FC = () => {
                 options={engineerOptions}
                 value={formEngineerId || ''}
                 onChange={(e, { value }) => setFormEngineerId(value as number)}
-                disabled={isEditingProjectAllocation}
+                disabled={isEditingProjectAllocation} // Disable engineer selection when editing
               />
             </Form.Field>
             <Form.Field>
@@ -734,7 +772,7 @@ const PlanningPage: React.FC = () => {
                 options={projectOptions}
                 value={formProjectId || ''}
                 onChange={(e, { value }) => setFormProjectId(value as number)}
-                disabled={isEditingProjectAllocation}
+                disabled={isEditingProjectAllocation} // Disable project selection when editing
               />
             </Form.Field>
             <Form.Field>
@@ -745,7 +783,7 @@ const PlanningPage: React.FC = () => {
                 options={generateMonthOptions()}
                 value={formAllocationMonth}
                 onChange={(e, { value }) => setFormAllocationMonth(value as string)}
-                disabled={isEditingProjectAllocation}
+                disabled={isEditingProjectAllocation} // Disable month selection when editing
               />
             </Form.Field>
             <Form.Field>
@@ -786,7 +824,7 @@ const PlanningPage: React.FC = () => {
                 options={engineerOptions}
                 value={formEngineerId || ''}
                 onChange={(e, { value }) => setFormEngineerId(value as number)}
-                disabled={isEditingNonProjectAllocation}
+                disabled={isEditingNonProjectAllocation} // Disable engineer selection when editing
               />
             </Form.Field>
             <Form.Field>
@@ -797,7 +835,7 @@ const PlanningPage: React.FC = () => {
                 options={nonProjectTypeOptions}
                 value={formNonProjectType}
                 onChange={(e, { value }) => setFormNonProjectType(value as string)}
-                disabled={isEditingNonProjectAllocation}
+                disabled={isEditingNonProjectAllocation} // Disable type selection when editing
               />
             </Form.Field>
             <Form.Field>
@@ -808,7 +846,7 @@ const PlanningPage: React.FC = () => {
                 options={generateMonthOptions()}
                 value={formAllocationMonth}
                 onChange={(e, { value }) => setFormAllocationMonth(value as string)}
-                disabled={isEditingNonProjectAllocation}
+                disabled={isEditingNonProjectAllocation} // Disable month selection when editing
               />
             </Form.Field>
             <Form.Field>
