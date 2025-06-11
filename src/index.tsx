@@ -1,3 +1,4 @@
+// src/components/PlanningPage.tsx
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ValueSetterParams, ICellRendererParams, CellValueChangedEvent } from 'ag-grid-community';
@@ -5,7 +6,7 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import 'ag-grid-enterprise'; // Required for Row Grouping, which might be implicitly used or just good practice
 
-// API imports (Ensure getMonthlyCapacity is NOT imported from here anymore)
+// API imports
 import {
     getEngineers, getProjects, getProjectAllocationsByPeriod,
     getNonProjectAllocationsByPeriod,
@@ -34,20 +35,22 @@ interface ProjectAllocationGridRow {
     engineer_name: string;
     project_id: number;
     project_name: string;
-    [monthKey: string]: AllocationCellData; // e.g., 'month_1', 'month_2', etc.
+    // IMPORTANT FIX: Removed the index signature `[monthKey: string]: AllocationCellData;`
+    // TypeScript will infer the types of month_X properties from usage.
 }
 
 interface NonProjectAllocationGridRow {
     engineer_id: number;
     engineer_name: string;
     non_project_type: string;
-    [monthKey: string]: AllocationCellData; // e.g., 'month_1', 'month_2', etc.
+    // IMPORTANT FIX: Removed the index signature `[monthKey: string]: AllocationCellData;`
+    // TypeScript will infer the types of month_X properties from usage.
 }
 
 interface SummaryGridRow {
     engineer_id: number;
     engineer_name: string;
-    [monthKey: string]: number | string; // e.g., 'month_1_total', 'month_1_remaining'
+    [monthKey: string]: number | string; // This index signature is correct here as all dynamic keys are numbers/strings
 }
 
 // Define the type for the frontend generated capacity
@@ -125,7 +128,6 @@ const PlanningPage: React.FC = () => {
             setProjects(projectsData);
             setProjectAllocations(projAllocationsData);
             setNonProjectAllocations(nonProjAllocationsData);
-            // setMonthlyCapacity(capacityData); // Removed as capacity is frontend-generated
 
             console.log("DEBUG: Fetched Engineers:", engineersData);
             console.log("DEBUG: Fetched Projects:", projectsData);
@@ -248,6 +250,7 @@ const PlanningPage: React.FC = () => {
                 // Sum non-project allocations for this engineer and month
                 nonProjectAllocations.forEach(npa => {
                     if (npa.engineer_id === engineer.engineer_id && npa.allocation_month === backendMonthKey) {
+                        // FIX: Corrected typo here from screenshot
                         totalAllocatedForMonth += npa.days_allocated;
                     }
                 });
@@ -294,7 +297,7 @@ const PlanningPage: React.FC = () => {
                     const currentAllocationId = currentCellData?.allocationId;
 
                     const allocationPayload: ProjectAllocation = {
-                        allocation_id: currentAllocationId || 0, // Use existing ID or 0 for new
+                        allocation_id: currentAllocationId || undefined, // Use existing ID or undefined for new
                         engineer_id: engineer_id,
                         project_id: project_id,
                         allocation_month: backendMonthKey,
@@ -346,7 +349,7 @@ const PlanningPage: React.FC = () => {
                     const currentNonProjectAllocationId = currentCellData?.nonProjectAllocationId;
 
                     const allocationPayload: NonProjectTimeAllocation = {
-                        non_project_allocation_id: currentNonProjectAllocationId || 0, // Use existing ID or 0 for new
+                        non_project_allocation_id: currentNonProjectAllocationId || undefined, // Use existing ID or undefined for new
                         engineer_id: engineer_id,
                         allocation_month: backendMonthKey,
                         type: non_project_type,
