@@ -1,61 +1,24 @@
 {
-  "name": "pingtest",
-  "version": "0.1.0",
+  "name": "dashboard",
+  "version": "0.0.0",
   "private": true,
-  "dependencies": {
-    "@testing-library/jest-dom": "^5.14.1",
-    "@testing-library/react": "^11.2.7",
-    "@testing-library/user-event": "^12.8.3",
-    "@types/jest": "^26.0.23",
-    "@types/node": "^12.20.15",
-    "@types/react": "^17.0.11",
-    "@types/react-bootstrap-typeahead": "^5.1.7",
-    "@types/react-dom": "^17.0.8",
-    "axios": "^0.21.1",
-    "formik": "^2.2.9",
-    "mobx": "^6.3.2",
-    "mobx-react-lite": "^3.2.0",
-    "node-sass": "^4.14.1",
-    "prettydiff": "^101.2.6",
-    "react": "^17.0.2",
-    "react-bootstrap-typeahead": "^5.2.0",
-    "react-dom": "^17.0.2",
-    "react-pro-sidebar": "^0.7.1",
-    "react-router-dom": "^5.3.0",
-    "react-scripts": "4.0.3",
-    "semantic-ui-css": "^2.4.1",
-    "semantic-ui-react": "^2.0.3",
-    "typescript": "^4.3.4",
-    "web-vitals": "^1.1.2",
-    "yup": "^0.32.9"
-  },
+  "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "dev:server": "node server.js",
+    "dev:nodemon": "nodemon --watch server.js --watch src --ext js,jsx,ts,tsx --exec \"node server.js\"",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "dependencies": {
+  "react": "^18.2.0",
+  "react-dom": "^18.2.0",
+  "antd": "^5.9.0",
+  "dayjs": "^1.11.0"
   },
   "devDependencies": {
-    "@types/react-router": "^5.1.17",
-    "@types/react-router-dom": "^5.3.2",
-    "@types/yup": "^0.29.11"
+    "vite": "^5.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "nodemon": "^3.0.1"
   }
 }

@@ -1,0 +1,63 @@
+/* Custom styles to make the slider look modern */
+.container {
+  padding: 18px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(16,24,40,0.06);
+}
+
+/* Antd slider overrides */
+.ant-slider {
+  margin: 12px 0;
+}
+
+/* Active track */
+.ant-slider-track {
+  background: linear-gradient(90deg, #0066ff, #00d4ff);
+  height: 12px;
+  border-radius: 8px;
+}
+
+/* Rail */
+.ant-slider-rail {
+  background: linear-gradient(90deg, rgba(2,6,23,0.06), rgba(2,6,23,0.02));
+  height: 12px;
+  border-radius: 8px;
+}
+
+/* Handle */
+.ant-slider-handle {
+  width: 24px;
+  height: 24px;
+  margin-top: -8px; /* center the larger handle */
+  background: radial-gradient(circle at 30% 30%, #ffffff, #eaf6ff);
+  border: 3px solid #3399ff;
+  box-shadow: 0 10px 22px rgba(51,153,255,0.18);
+}
+
+/* Marks */
+.ant-slider-mark-text {
+  color: rgba(2,6,23,0.45);
+}
+
+/* Tooltip style */
+.ant-tooltip-inner {
+  background: linear-gradient(180deg,#001529,#0f1724);
+  color: #fff;
+  border-radius: 6px;
+}
+
+@media (max-width: 600px) {
+  .container { padding: 12px }
+}
+
+.quick-btn {
+  background: linear-gradient(90deg,#ffffff,#f7fbff);
+  border: 1px solid rgba(2,6,23,0.06);
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.quick-btn:hover { box-shadow: 0 8px 20px rgba(3,102,255,0.06) }
