@@ -32,7 +32,7 @@ export default function EventContextPage() {
     <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
       <div style={{ width: '720px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <Title level={4} style={{ margin: 0 }}>Event Context</Title>
+          <Title level={4} style={{ margin: 0 }}>Events</Title>
         </div>
 
         <Card style={{ borderRadius: 12, boxShadow: '0 8px 24px rgba(2,6,23,0.12)' }}>

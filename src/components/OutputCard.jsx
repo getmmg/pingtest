@@ -110,7 +110,7 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
                 <List.Item>
                   <List.Item.Meta
                     title={<div><Text strong>{item.source}</Text> <Tag color={item.severity === 'critical' ? 'red' : item.severity === 'major' ? 'orange' : 'blue'}>{item.severity}</Tag></div>}
-                    description={<div><Text type="secondary">{short} · {ago} · {item.country} · {item.host}</Text><div>{item.message}{item.value ? ` (latency ${item.value} ms)` : ''}</div></div>}
+                    description={<div><div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}><Text type="secondary">{short} · {ago} · {item.country} ·</Text><Text type="secondary" strong>{item.host}</Text></div><div>{item.message}{item.value ? ` (latency ${item.value} ms)` : ''}</div></div>}
                   />
                 </List.Item>
               )

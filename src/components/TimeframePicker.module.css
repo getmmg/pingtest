@@ -1,0 +1,40 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #111827; /* gray-900 */
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 150ms ease;
+  box-shadow: none;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  border-color: #b3c7ff;
+  box-shadow: 0 4px 10px rgba(16,24,40,0.06);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.active {
+  background: linear-gradient(180deg,#0b63ff 0%, #0066d6 100%);
+  color: #ffffff;
+  border: 1px solid rgba(11,99,255,0.9);
+  box-shadow: 0 6px 18px rgba(3,102,214,0.18);
+}
+
+/* smaller screens: make buttons full-width rows */
+@media (max-width: 520px) {
+  .btn {
+    flex: 1 1 100%;
+  }
+}
