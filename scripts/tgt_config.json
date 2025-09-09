@@ -1,0 +1,7 @@
+{
+  "host": "tgt-db.example.com",
+  "port": 5432,
+  "user": "tgt_user",
+  "db": "target_database",
+  "password": null
+}

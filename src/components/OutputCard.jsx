@@ -8,6 +8,7 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
   const [loading, setLoading] = useState(true)
   const [issues, setIssues] = useState([])
   const [activeSeverity, setActiveSeverity] = useState(null)
+  const [activeSources, setActiveSources] = useState([])
 
   useEffect(() => {
     // ensure dataset exists (heavy gen) - run once
@@ -47,7 +48,16 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
     return acc
   }, {})
 
-  const filteredIssues = activeSeverity ? issues.filter(i => i.severity === activeSeverity) : issues
+  const sourceCounts = issues.reduce((acc, it) => {
+    acc[it.source] = (acc[it.source] || 0) + 1
+    return acc
+  }, {})
+
+  // apply severity and source filters
+  const filteredBySeverity = activeSeverity ? issues.filter(i => i.severity === activeSeverity) : issues
+  const filteredIssues = activeSources && activeSources.length > 0
+    ? filteredBySeverity.filter(i => activeSources.includes(i.source))
+    : filteredBySeverity
   const totalAll = issues.length
   const total = filteredIssues.length
 
@@ -60,7 +70,7 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
         </div>
         <div>
           <Text type="secondary">Filtered by</Text>
-          <div>{region}{country ? ` / ${country}` : ''}</div>
+          <div>{region}{country ? ` / ${country}` : ''}{activeSources && activeSources.length ? ` / ${activeSources.join(', ')}` : ''}{activeSeverity ? ` / ${activeSeverity}` : ''}</div>
         </div>
       </div>
 
@@ -92,6 +102,25 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
           </Tag>
         )}
       </div>
+      {/* Source badges (tools) */}
+      <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        {Object.keys(sourceCounts).map(src => {
+          const isActive = activeSources.includes(src)
+          return (
+            <Tag
+              key={src}
+              onClick={() => {
+                if (isActive) setActiveSources(s => s.filter(x => x !== src))
+                else setActiveSources(s => [...s, src])
+              }}
+              style={{ cursor: 'pointer', background: isActive ? '#e6f7ff' : undefined, border: isActive ? '1px solid #91d5ff' : undefined }}
+            >
+              <span style={{ textTransform: 'capitalize', marginRight: 6 }}>{src}</span>
+              <span style={{ fontWeight: 700 }}>{sourceCounts[src]}</span>
+            </Tag>
+          )
+        })}
+      </div>
 
       <div style={{ marginTop: 12 }}>
         {loading ? (
@@ -110,7 +139,7 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
                 <List.Item>
                   <List.Item.Meta
                     title={<div><Text strong>{item.source}</Text> <Tag color={item.severity === 'critical' ? 'red' : item.severity === 'major' ? 'orange' : 'blue'}>{item.severity}</Tag></div>}
-                    description={<div><div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap' }}><Text type="secondary">{short} · {ago} · {item.country} ·</Text><Text type="secondary" strong>{item.host}</Text></div><div>{item.message}{item.value ? ` (latency ${item.value} ms)` : ''}</div></div>}
+                    description={<div><Text type="secondary">{short} · {ago} · {item.country} · {item.host}</Text><div>{item.message}{item.value ? ` (latency ${item.value} ms)` : ''}</div></div>}
                   />
                 </List.Item>
               )

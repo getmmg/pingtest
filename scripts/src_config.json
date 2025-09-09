@@ -1,0 +1,7 @@
+{
+  "host": "src-db.example.com",
+  "port": 5432,
+  "user": "src_user",
+  "db": "source_database",
+  "password": null
+}

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { DatePicker, Space, Button } from 'antd'
 import dayjs from 'dayjs'
-import styles from './TimeframePicker.module.css'
 
 const { RangePicker } = DatePicker
 
@@ -68,15 +67,18 @@ export default function TimeframePicker({ value, onChange }) {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {Object.entries(PRESETS).map(([key, rangeArr]) => {
           const isActive = activePreset === key
+          const style = isActive
+            ? { background: 'linear-gradient(90deg,#0066ff,#00d4ff)', color: '#fff', border: 'none', fontWeight: 700 }
+            : { }
 
           return (
             <Button
               key={key}
-              className={isActive ? `${styles.btn} ${styles.active}` : styles.btn}
               onClick={() => {
                 onChange(rangeArr)
                 setActivePreset(key)
               }}
+              style={{ marginLeft: 0, ...style }}
             >
               {key === '1h' ? 'Last 1 hr' : key === '4h' ? 'Last 4 hours' : 'Last 8 hours'}
             </Button>
