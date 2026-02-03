@@ -5,20 +5,27 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:server": "node server.js",
-    "dev:nodemon": "nodemon --watch server.js --watch src --ext js,jsx,ts,tsx --exec \"node server.js\"",
+    "dev:server": "ts-node --esm server.ts",
+    "dev:nodemon": "nodemon --watch server.ts --watch src --ext ts,tsx --exec \"ts-node --esm server.ts\"",
+    "type-check": "tsc --noEmit",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-  "react": "^18.2.0",
-  "react-dom": "^18.2.0",
-  "antd": "^5.9.0",
-  "dayjs": "^1.11.0"
+    "antd": "^5.9.0",
+    "dayjs": "^1.11.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
+    "@types/node": "^20.5.0",
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^5.0.0",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.6",
+    "vite": "^5.0.0"
   }
 }

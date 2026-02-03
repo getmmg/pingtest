@@ -4,7 +4,6 @@ import dayjs from 'dayjs'
 
 const { RangePicker } = DatePicker
 
-// Helper: convert Date objects to quarter units relative to the rounded 'now'
 const QUARTER_MS = 15 * 60 * 1000
 
 function roundNowToQuarter() {
@@ -15,19 +14,22 @@ function roundNowToQuarter() {
   return d.getTime()
 }
 
-export default function TimeframePicker({ value, onChange }) {
-  // value is expected to be [startQuarter, endQuarter]
-  const nowRounded = roundNowToQuarter()
-  const [activePreset, setActivePreset] = useState(null)
+interface Props {
+  value?: [number, number]
+  onChange?: (val: [number, number]) => void
+}
 
-  const PRESETS = {
+export default function TimeframePicker({ value, onChange }: Props) {
+  const nowRounded = roundNowToQuarter()
+  const [activePreset, setActivePreset] = useState<string | null>(null)
+
+  const PRESETS: Record<string, [number, number]> = {
     '1h': [-4, 0],
     '4h': [-16, 0],
     '8h': [-32, 0]
   }
 
   useEffect(() => {
-    // determine if incoming value matches a preset
     if (!Array.isArray(value)) {
       setActivePreset(null)
       return
@@ -36,20 +38,20 @@ export default function TimeframePicker({ value, onChange }) {
     setActivePreset(match ? match[0] : null)
   }, [value])
 
-  const toRangePickerValue = val => {
+  const toRangePickerValue = (val?: [number, number]) => {
     if (!Array.isArray(val)) return undefined
     const startTs = nowRounded + val[0] * QUARTER_MS
     const endTs = nowRounded + val[1] * QUARTER_MS
-    return [dayjs(startTs), dayjs(endTs)]
+    return [dayjs(startTs), dayjs(endTs)] as any
   }
 
-  const fromRangePickerValue = vals => {
+  const fromRangePickerValue = (vals: any) => {
     if (!Array.isArray(vals)) return
     const s = vals[0].valueOf()
     const e = vals[1].valueOf()
     const startQ = Math.round((s - nowRounded) / QUARTER_MS)
     const endQ = Math.round((e - nowRounded) / QUARTER_MS)
-    onChange([startQ, endQ])
+    if (onChange) onChange([startQ, endQ])
   }
 
   return (
@@ -75,7 +77,7 @@ export default function TimeframePicker({ value, onChange }) {
             <Button
               key={key}
               onClick={() => {
-                onChange(rangeArr)
+                if (onChange) onChange(rangeArr)
                 setActivePreset(key)
               }}
               style={{ marginLeft: 0, ...style }}

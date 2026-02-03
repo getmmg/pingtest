@@ -4,8 +4,16 @@ import { fetchCountries } from '../data/regions'
 
 const { Option } = Select
 
-export default function LocationSelect({ region, value, onChange, placeholder = 'Select location', style }) {
-  const [countries, setCountries] = useState([])
+interface Props {
+  region?: string
+  value?: string
+  onChange?: (val: string) => void
+  placeholder?: string
+  style?: React.CSSProperties
+}
+
+export default function LocationSelect({ region, value, onChange, placeholder = 'Select location', style }: Props) {
+  const [countries, setCountries] = useState<string[]>([])
   useEffect(() => {
     let mounted = true
     if (!region) {

@@ -1,8 +1,9 @@
-// regions.js
-// Exports region list and countries per region. Provides simple async fetch functions
-// so the components can be easily swapped to call a real API in the future.
+export interface Region {
+  value: string
+  label: string
+}
 
-export const REGIONS = [
+export const REGIONS: Region[] = [
   { value: 'Global', label: 'Global' },
   { value: 'EMEA', label: 'EMEA' },
   { value: 'APAC', label: 'APAC' },
@@ -10,8 +11,7 @@ export const REGIONS = [
   { value: 'CH', label: 'CH' }
 ]
 
-// Representative country lists for demo; replace or fetch from API as needed.
-export const COUNTRIES_BY_REGION = {
+export const COUNTRIES_BY_REGION: Record<string, string[]> = {
   CH: ['Switzerland'],
   EMEA: [
     'United Kingdom',
@@ -39,19 +39,16 @@ export const COUNTRIES_BY_REGION = {
   ]
 }
 
-// Global will flatten the others
 COUNTRIES_BY_REGION.Global = Array.from(
   new Set([].concat(COUNTRIES_BY_REGION.EMEA, COUNTRIES_BY_REGION.APAC, COUNTRIES_BY_REGION.AMER, COUNTRIES_BY_REGION.CH))
 )
 
-// Simulate async API
 export function fetchRegions() {
   return Promise.resolve(REGIONS)
 }
 
-export function fetchCountries(regionValue) {
+export function fetchCountries(regionValue?: string) {
   if (!regionValue) return Promise.resolve([])
-  // Return empty for unknown
   const list = COUNTRIES_BY_REGION[regionValue] || []
   return Promise.resolve(list)
 }

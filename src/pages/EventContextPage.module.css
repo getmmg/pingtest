@@ -1,0 +1,61 @@
+.page {
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+.container {
+  width: 1200px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.controls {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+}
+.controlsLeft {
+  flex: 1 1 600px;
+  min-width: 420px;
+}
+.controlsRight {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-left: auto;
+}
+.timelineSection {
+  margin-bottom: 12px;
+}
+.unifiedTitle {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.timelineCard {
+  border-radius: 8px;
+  padding: 12px;
+  min-height: 140px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 16px;
+}
+.colLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.colRight {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.filters {
+  margin-top: 16px;
+}

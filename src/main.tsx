@@ -4,7 +4,7 @@ import App from './App'
 import 'antd/dist/reset.css'
 import './index.css'
 
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>

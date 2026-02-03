@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from 'react'
 import { Card, Typography, List, Tag, Spin } from 'antd'
 import { fetchIssues, generateDataset } from '../data/issues'
+import type { Issue } from '../types'
 
 const { Title, Text } = Typography
 
-export default function OutputCard({ rangeQuarters = [-96, 0], region, country }) {
+interface Props {
+  rangeQuarters?: [number, number]
+  region?: string
+  country?: string
+}
+
+export default function OutputCard({ rangeQuarters = [-96, 0], region, country }: Props) {
   const [loading, setLoading] = useState(true)
-  const [issues, setIssues] = useState([])
-  const [activeSeverity, setActiveSeverity] = useState(null)
-  const [activeSources, setActiveSources] = useState([])
+  const [issues, setIssues] = useState<Issue[]>([])
+  const [activeSeverity, setActiveSeverity] = useState<string | null>(null)
+  const [activeSources, setActiveSources] = useState<string[]>([])
 
   useEffect(() => {
-    // ensure dataset exists (heavy gen) - run once
     generateDataset({ now: Date.now(), hours: 72, count: 8000 })
   }, [])
 
@@ -21,7 +27,6 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
     async function load() {
       setLoading(true)
       const QUARTER_MS = 15 * 60 * 1000
-      // align now to nearest quarter like the slider
       const now = new Date()
       const q = Math.floor(now.getMinutes() / 15) * 15
       now.setMinutes(q, 0, 0)
@@ -29,11 +34,10 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
       const startTs = nowRoundedTs + rangeQuarters[0] * QUARTER_MS
       const endTs = nowRoundedTs + rangeQuarters[1] * QUARTER_MS
 
-  let list = await fetchIssues(startTs, endTs, region, country)
-  // sort newest first
-  list = list.sort((a, b) => b.ts - a.ts)
-  if (!mounted) return
-  setIssues(list)
+      let list = await fetchIssues(startTs, endTs, region, country)
+      list = list.sort((a: Issue, b: Issue) => b.ts - a.ts)
+      if (!mounted) return
+      setIssues(list)
       setLoading(false)
     }
 
@@ -41,19 +45,17 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
     return () => { mounted = false }
   }, [rangeQuarters, region, country])
 
-  // apply severity filter
   const severityOrder = ['critical', 'major', 'minor', 'info']
-  const counts = issues.reduce((acc, it) => {
+  const counts = issues.reduce((acc: Record<string, number>, it) => {
     acc[it.severity] = (acc[it.severity] || 0) + 1
     return acc
   }, {})
 
-  const sourceCounts = issues.reduce((acc, it) => {
+  const sourceCounts = issues.reduce((acc: Record<string, number>, it) => {
     acc[it.source] = (acc[it.source] || 0) + 1
     return acc
   }, {})
 
-  // apply severity and source filters
   const filteredBySeverity = activeSeverity ? issues.filter(i => i.severity === activeSeverity) : issues
   const filteredIssues = activeSources && activeSources.length > 0
     ? filteredBySeverity.filter(i => activeSources.includes(i.source))
@@ -74,7 +76,6 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
         </div>
       </div>
 
-      {/* Severity badges */}
       <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
         {severityOrder.map(s => {
           const color = s === 'critical' ? 'red' : s === 'major' ? 'orange' : s === 'minor' ? 'blue' : 'default'
@@ -102,7 +103,7 @@ export default function OutputCard({ rangeQuarters = [-96, 0], region, country }
           </Tag>
         )}
       </div>
-      {/* Source badges (tools) */}
+
       <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         {Object.keys(sourceCounts).map(src => {
           const isActive = activeSources.includes(src)

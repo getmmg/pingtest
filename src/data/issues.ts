@@ -1,18 +1,16 @@
 import { COUNTRIES_BY_REGION } from './regions'
-
-// Generate a large dummy dataset representing events from several systems.
-// Each record: { id, ts, source, severity, message, region, country, host, value }
+import type { Issue } from '../types'
 
 const SOURCES = ['splunk', 'zabbix', 'syslog', 'cvaas']
 const SEVERITIES = ['critical', 'major', 'minor', 'info']
 
-let _dataset = null
+let _dataset: Issue[] | null = null
 
-function randInt(min, max) {
+function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
 
-function pick(arr) {
+function pick<T>(arr: T[]) {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
@@ -41,7 +39,7 @@ function pickUser() {
   return pick(users)
 }
 
-function makeMessage(source) {
+function makeMessage(source: string) {
   if (source === 'splunk') {
     const templates = [
       () => `Saved search 'High Error Rate' triggered: ${randInt(100, 1500)} events in last 5m (index=${pickIndex()})`,
@@ -84,17 +82,15 @@ function makeMessage(source) {
   return 'Event'
 }
 
-export function generateDataset(options = { now: Date.now(), hours: 72, count: 5000 }) {
-  const { now, hours, count } = options
+export function generateDataset(options: { now?: number, hours?: number, count?: number } = { now: Date.now(), hours: 72, count: 5000 }) {
+  const { now = Date.now(), hours = 72, count = 5000 } = options
   const start = now - hours * 3600 * 1000
-  const countriesPool = Object.values(COUNTRIES_BY_REGION).flat()
+  const countriesPool: string[] = (Object.values(COUNTRIES_BY_REGION).flat() as string[])
 
-  const data = new Array(count).fill(0).map((_, i) => {
-    // spread across timeframe, random timestamp
+  const data: Issue[] = new Array(count).fill(0).map((_, i) => {
     const ts = randInt(start, now)
     const source = pick(SOURCES)
     const severity = pick(SEVERITIES)
-    // choose region based on country mapping
     const country = pick(countriesPool)
     let region = 'Global'
     for (const r in COUNTRIES_BY_REGION) {
@@ -111,7 +107,6 @@ export function generateDataset(options = { now: Date.now(), hours: 72, count: 5
       country,
       host: `${country.replace(/\s+/g, '-').toLowerCase()}-host-${randInt(1,200)}`,
       value: source === 'cvaas' ? randInt(100, 2000) : null,
-      // extra fields used to build API outputs
       index: pickIndex(),
       sourcetype: pickSourcetype(),
       user: pickUser(),
@@ -128,12 +123,9 @@ export function ensureDataset() {
   return _dataset
 }
 
-// --- New: Mock API endpoints ---
-// Each function returns a Promise that resolves to a realistic API-style JSON payload.
-
-function sliceByTimeAndLocation(startTs, endTs, region, country) {
+function sliceByTimeAndLocation(startTs: number, endTs: number, region?: string, country?: string | null) {
   ensureDataset()
-  return _dataset.filter(d => d.ts >= startTs && d.ts <= endTs)
+  return (_dataset || []).filter(d => d.ts >= startTs && d.ts <= endTs)
     .filter(d => {
       if (!region || region === 'Global') return true
       return d.region === region
@@ -144,12 +136,11 @@ function sliceByTimeAndLocation(startTs, endTs, region, country) {
     })
 }
 
-export function fetchSplunkAPI({ startTs, endTs, region, country, limit = 500 }) {
+export function fetchSplunkAPI({ startTs, endTs, region, country, limit = 500 }: any) {
   const rows = sliceByTimeAndLocation(startTs, endTs, region, country)
     .filter(r => r.source === 'splunk')
     .slice(0, limit)
 
-  // Splunk-style result: results array with _raw and fields
   const results = rows.map(r => ({
     _raw: `${new Date(r.ts).toISOString()} ${r.host} ${r.message}`,
     _time: new Date(r.ts).toISOString(),
@@ -170,15 +161,14 @@ export function fetchSplunkAPI({ startTs, endTs, region, country, limit = 500 })
   return new Promise(resolve => setTimeout(() => resolve(payload), 80 + Math.random() * 120))
 }
 
-export function fetchZabbixAPI({ startTs, endTs, region, country, limit = 200 }) {
+export function fetchZabbixAPI({ startTs, endTs, region, country, limit = 200 }: any) {
   const rows = sliceByTimeAndLocation(startTs, endTs, region, country)
     .filter(r => r.source === 'zabbix')
     .slice(0, limit)
 
-  // Zabbix JSON-RPC style response for problem/events
   const result = rows.map(r => ({
     eventid: r.id,
-    clock: Math.floor(r.ts / 1000), // unix time
+    clock: Math.floor(r.ts / 1000),
     hosts: [{ host: r.host }],
     name: r.message,
     severity: (r.severity === 'critical' ? 'Disaster' : r.severity === 'major' ? 'High' : r.severity === 'Average' ? 'Average' : 'Information'),
@@ -195,7 +185,7 @@ export function fetchZabbixAPI({ startTs, endTs, region, country, limit = 200 })
   return new Promise(resolve => setTimeout(() => resolve(payload), 100 + Math.random() * 200))
 }
 
-export function fetchSyslogAPI({ startTs, endTs, region, country, limit = 500 }) {
+export function fetchSyslogAPI({ startTs, endTs, region, country, limit = 500 }: any) {
   const rows = sliceByTimeAndLocation(startTs, endTs, region, country)
     .filter(r => r.source === 'syslog')
     .slice(0, limit)
@@ -217,7 +207,7 @@ export function fetchSyslogAPI({ startTs, endTs, region, country, limit = 500 })
   return new Promise(resolve => setTimeout(() => resolve(payload), 40 + Math.random() * 80))
 }
 
-export function fetchCvaasAPI({ startTs, endTs, region, country, limit = 500 }) {
+export function fetchCvaasAPI({ startTs, endTs, region, country, limit = 500 }: any) {
   const rows = sliceByTimeAndLocation(startTs, endTs, region, country)
     .filter(r => r.source === 'cvaas')
     .slice(0, limit)
@@ -239,11 +229,8 @@ export function fetchCvaasAPI({ startTs, endTs, region, country, limit = 500 }) 
   return new Promise(resolve => setTimeout(() => resolve(payload), 30 + Math.random() * 60))
 }
 
-// Unified fetch that queries the four mock endpoints and returns a flattened array
-// matching the UI's expected shape: { id, ts, source, severity, message, region, country, host, value }
-export async function fetchIssues(startTs, endTs, region, country) {
-  // call each endpoint in parallel
-  let splunk, zabbix, syslog, cvaas
+export async function fetchIssues(startTs: number, endTs: number, region?: string, country?: string | null) {
+  let splunk: any, zabbix: any, syslog: any, cvaas: any
   try {
     [splunk, zabbix, syslog, cvaas] = await Promise.all([
       fetchSplunkAPI({ startTs, endTs, region, country }),
@@ -252,18 +239,15 @@ export async function fetchIssues(startTs, endTs, region, country) {
       fetchCvaasAPI({ startTs, endTs, region, country })
     ])
   } catch (err) {
-    // If any endpoint call fails, log and continue with empty responses
-    // (prevents uncaught exceptions from bubbling to the UI)
     // eslint-disable-next-line no-console
     console.error('fetchIssues: failed to call one or more mock endpoints', err)
     splunk = zabbix = syslog = cvaas = {}
   }
 
-  const out = []
+  const out: Issue[] = []
 
-  // normalize splunk
   const splunkResults = Array.isArray(splunk && splunk.results) ? splunk.results : Array.isArray(splunk) ? splunk : []
-  splunkResults.forEach(r => {
+  splunkResults.forEach((r: any) => {
     out.push({
       id: `splunk-${r._time}-${Math.random().toString(36).slice(2,8)}`,
       ts: Date.parse(r._time),
@@ -277,9 +261,8 @@ export async function fetchIssues(startTs, endTs, region, country) {
     })
   })
 
-  // normalize zabbix
   const zabbixResults = Array.isArray(zabbix && zabbix.result) ? zabbix.result : Array.isArray(zabbix) ? zabbix : []
-  zabbixResults.forEach(r => {
+  zabbixResults.forEach((r: any) => {
     out.push({
       id: `zabbix-${r.eventid}`,
       ts: r.clock * 1000,
@@ -293,9 +276,8 @@ export async function fetchIssues(startTs, endTs, region, country) {
     })
   })
 
-  // normalize syslog
   const syslogEvents = Array.isArray(syslog && syslog.events) ? syslog.events : Array.isArray(syslog) ? syslog : []
-  syslogEvents.forEach(r => {
+  syslogEvents.forEach((r: any) => {
     out.push({
       id: `syslog-${r.timestamp}-${Math.random().toString(36).slice(2,8)}`,
       ts: Date.parse(r.timestamp),
@@ -309,9 +291,8 @@ export async function fetchIssues(startTs, endTs, region, country) {
     })
   })
 
-  // normalize cvaas
   const cvaasMetrics = Array.isArray(cvaas && cvaas.metrics) ? cvaas.metrics : Array.isArray(cvaas) ? cvaas : []
-  cvaasMetrics.forEach(r => {
+  cvaasMetrics.forEach((r: any) => {
     out.push({
       id: `cvaas-${r.timestamp}-${Math.random().toString(36).slice(2,8)}`,
       ts: Date.parse(r.timestamp),
@@ -325,11 +306,8 @@ export async function fetchIssues(startTs, endTs, region, country) {
     })
   })
 
-  // sort newest first
   out.sort((a,b) => b.ts - a.ts)
-  // return up to 2000 items
   return out.slice(0, 2000)
 }
 
-// Keep backward-compatible fetch function name
 export { fetchIssues as fetchIssuesAPI }

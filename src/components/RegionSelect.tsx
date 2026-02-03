@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from 'react'
 import { Select } from 'antd'
 import { fetchRegions } from '../data/regions'
+import type { Region } from '../types'
 
 const { Option } = Select
 
-export default function RegionSelect({ value, onChange, placeholder = 'Select region', style }) {
-  const [regions, setRegions] = useState([])
+interface Props {
+  value?: string
+  onChange?: (val: string) => void
+  placeholder?: string
+  style?: React.CSSProperties
+}
+
+export default function RegionSelect({ value, onChange, placeholder = 'Select region', style }: Props) {
+  const [regions, setRegions] = useState<Region[]>([])
 
   useEffect(() => {
     let mounted = true

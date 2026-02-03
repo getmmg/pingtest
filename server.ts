@@ -8,10 +8,12 @@ async function start() {
   })
 
   await server.listen()
-  console.log('Vite server started via server.js')
+  // eslint-disable-next-line no-console
+  console.log('Vite server started via server.ts')
 }
 
 start().catch(err => {
+  // eslint-disable-next-line no-console
   console.error(err)
   process.exit(1)
 })
